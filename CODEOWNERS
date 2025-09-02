@@ -1,0 +1,17 @@
+# Global owners
+* @your-username
+
+# Web app
+/apps/web/ @your-username
+
+# Bot
+/apps/bot/ @your-username
+
+# Shared packages
+/packages/shared/ @your-username
+
+# Documentation
+/docs/ @your-username
+
+# GitHub workflows
+/.github/ @your-username
