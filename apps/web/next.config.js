@@ -1,1 +1,6 @@
-const nextConfig = { transpilePackages: ["@retasker/shared"] }; module.exports = nextConfig; 
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ['@retasker/shared'],
+}
+
+module.exports = nextConfig

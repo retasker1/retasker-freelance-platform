@@ -1,139 +1,130 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient();
-
-// Схема валидации для обновления заказа
-const updateOrderSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
-  description: z.string().min(10).max(2000).optional(),
-  budgetCents: z.number().int().min(1000).max(10000000).optional(),
-  category: z.string().min(1).optional(),
-  deadline: z.string().min(1).optional(),
-  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
-});
-
-// GET /api/orders/[id] - получить заказ по ID
+// GET /api/orders/[id] - получение заказа по ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params
+
     const order = await prisma.order.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         customer: {
-          select: { id: true, firstName: true, lastName: true }
+          select: {
+            id: true,
+            displayName: true,
+            rating: true,
+            ratingsCount: true,
+            avatarUrl: true
+          }
         },
         responses: {
           include: {
             freelancer: {
-              select: { id: true, firstName: true, lastName: true }
+              select: {
+                id: true,
+                displayName: true,
+                rating: true,
+                ratingsCount: true
+              }
+            }
+          },
+          orderBy: { createdAt: 'asc' }
+        },
+        deal: {
+          include: {
+            freelancer: {
+              select: {
+                id: true,
+                displayName: true,
+                rating: true
+              }
             }
           }
         }
       }
-    });
-
+    })
     if (!order) {
       return NextResponse.json(
         { error: 'Заказ не найден' },
         { status: 404 }
-      );
+      )
     }
 
-    return NextResponse.json(order);
+    return NextResponse.json(order)
   } catch (error) {
-    console.error('Error fetching order:', error);
+    console.error('Error fetching order:', error)
     return NextResponse.json(
-      { error: 'Ошибка загрузки заказа' },
+      { error: 'Ошибка при получении заказа' },
       { status: 500 }
-    );
+    )
   }
 }
 
-// PUT /api/orders/[id] - обновить заказ
+// PUT /api/orders/[id] - обновление заказа
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const validatedData = updateOrderSchema.parse(body);
+    const { id } = params
+    const body = await request.json()
 
-    // Проверяем, существует ли заказ
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: params.id }
-    });
-
-    if (!existingOrder) {
-      return NextResponse.json(
-        { error: 'Заказ не найден' },
-        { status: 404 }
-      );
-    }
-
-    // Подготавливаем данные для обновления
-    const updateData: any = { ...validatedData };
-    if (validatedData.deadline) {
-      updateData.deadline = new Date(validatedData.deadline);
-    }
-
-    const order = await prisma.order.update({
-      where: { id: params.id },
-      data: updateData,
+    // TODO: Проверить права доступа (только владелец заказа)
+    
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: {
+        title: body.title,
+        description: body.description,
+        budgetCents: body.budgetCents,
+        status: body.status
+      },
       include: {
         customer: {
-          select: { id: true, firstName: true, lastName: true }
+          select: {
+            id: true,
+            displayName: true,
+            rating: true
+          }
         }
       }
-    });
+    })
 
-    return NextResponse.json(order);
+    return NextResponse.json(updatedOrder)
   } catch (error) {
-    console.error('Error updating order:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Ошибка валидации данных', details: error.errors },
-        { status: 400 }
-      );
-    }
+    console.error('Error updating order:', error)
     return NextResponse.json(
-      { error: 'Ошибка обновления заказа' },
+      { error: 'Ошибка при обновлении заказа' },
       { status: 500 }
-    );
+    )
   }
 }
 
-// DELETE /api/orders/[id] - удалить заказ
+// DELETE /api/orders/[id] - удаление заказа
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Проверяем, существует ли заказ
-    const existingOrder = await prisma.order.findUnique({
-      where: { id: params.id }
-    });
+    const { id } = params
 
-    if (!existingOrder) {
-      return NextResponse.json(
-        { error: 'Заказ не найден' },
-        { status: 404 }
-      );
-    }
-
+    // TODO: Проверить права доступа (только владелец заказа)
+    
     await prisma.order.delete({
-      where: { id: params.id }
-    });
+      where: { id }
+    })
 
-    return NextResponse.json({ message: 'Заказ удален' });
+    return NextResponse.json({ message: 'Заказ удален' })
   } catch (error) {
-    console.error('Error deleting order:', error);
+    console.error('Error deleting order:', error)
     return NextResponse.json(
-      { error: 'Ошибка удаления заказа' },
+      { error: 'Ошибка при удалении заказа' },
       { status: 500 }
-    );
+    )
   }
 }
+

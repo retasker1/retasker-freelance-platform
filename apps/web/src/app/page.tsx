@@ -1,94 +1,46 @@
-﻿'use client';
-
-import { useState } from 'react';
-import TelegramLogin from '../components/TelegramLogin';
-
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-}
-
 export default function HomePage() {
-  const [user, setUser] = useState<TelegramUser | null>(null);
-
-  const handleTelegramAuth = async (telegramUser: TelegramUser) => {
-    try {
-      // Отправляем данные пользователя на сервер для проверки и сохранения
-      const response = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(telegramUser),
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        console.log('Пользователь авторизован:', userData);
-      } else {
-        console.error('Ошибка авторизации');
-      }
-    } catch (error) {
-      console.error('Ошибка при авторизации:', error);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-white text-center mb-8">Retasker</h1>
-        <p className="text-gray-300 text-center mb-12">Фриланс платформа в Telegram</p>
+    <div className="px-4 py-6 sm:px-0">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          Добро пожаловать в Retasker
+        </h1>
+        <p className="text-xl text-gray-600 mb-8">
+          Биржа фриланса в Telegram с анонимным общением и безопасными сделками
+        </p>
         
-        {user ? (
-          <div className="max-w-md mx-auto bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h2 className="text-xl font-semibold text-white mb-4">Добро пожаловать!</h2>
-            <div className="flex items-center space-x-4 mb-4">
-              {user.photo_url && (
-                <img 
-                  src={user.photo_url} 
-                  alt="Avatar" 
-                  className="w-12 h-12 rounded-full"
-                />
-              )}
-              <div>
-                <p className="text-white font-medium">
-                  {user.first_name} {user.last_name}
-                </p>
-                {user.username && (
-                  <p className="text-gray-400 text-sm">@{user.username}</p>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <a 
-                href="/orders" 
-                className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center"
-              >
-                Создать заказ
-              </a>
-              <a 
-                href="/orders" 
-                className="block w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center"
-              >
-                Просмотреть заказы
-              </a>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="text-3xl mb-4">📋</div>
+            <h3 className="text-lg font-semibold mb-2">Создавайте заказы</h3>
+            <p className="text-gray-600">
+              Размещайте свои задачи и получайте отклики от исполнителей
+            </p>
           </div>
-        ) : (
-          <div className="max-w-md mx-auto">
-            <TelegramLogin 
-              botName="retasker_bot" 
-              onAuthCallback={handleTelegramAuth}
-            />
+          
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="text-3xl mb-4">🤖</div>
+            <h3 className="text-lg font-semibold mb-2">Анонимное общение</h3>
+            <p className="text-gray-600">
+              Общайтесь через Telegram бота без раскрытия личных данных
+            </p>
           </div>
-        )}
+          
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="text-3xl mb-4">💰</div>
+            <h3 className="text-lg font-semibold mb-2">Безопасные сделки</h3>
+            <p className="text-gray-600">
+              Виртуальный баланс и защищенные платежи
+            </p>
+          </div>
+        </div>
+        
+        <div className="mt-8">
+          <button className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+            Войти через Telegram
+          </button>
+        </div>
       </div>
     </div>
-  );
+  )
 }

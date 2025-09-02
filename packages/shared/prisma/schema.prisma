@@ -33,6 +33,7 @@ model User {
   ratingsReceived Rating[] @relation("RateeRatings")
   complaints    Complaint[]
   messages      Message[]
+  
   @@map("users")
 }
 
@@ -51,6 +52,7 @@ model Order {
   responses   Response[]
   deal        Deal?
   favorites   Favorite[]
+  
   @@map("orders")
 }
 
@@ -63,6 +65,7 @@ model Response {
   priceCents  Int
   message     String?
   createdAt   DateTime @default(now())
+  
   @@map("responses")
 }
 
