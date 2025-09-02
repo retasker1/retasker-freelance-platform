@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  tgId          String   @unique
+  displayName   String
+  createdAt     DateTime @default(now())
+  avatarUrl     String?
+  rating        Float    @default(0)
+  ratingsCount  Int      @default(0)
+  balanceCents  Int      @default(0) // виртуальный баланс в центах
+  isAdmin       Boolean  @default(false)
+  activeDealId  String?  // ID активной сделки для бота
+  
+  // Relations
+  orders        Order[]
+  responses     Response[]
+  dealsAsCustomer Deal[] @relation("CustomerDeals")
+  dealsAsFreelancer Deal[] @relation("FreelancerDeals")
+  favorites     Favorite[]
+  balanceTransactions BalanceTransaction[]
+  ratingsGiven  Rating[] @relation("RaterRatings")
+  ratingsReceived Rating[] @relation("RateeRatings")
+  complaints    Complaint[]
+  messages      Message[]
+  
+  @@map("users")
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  budgetCents Int
+  customer    User        @relation(fields: [customerId], references: [id])
+  customerId  String
+  status      OrderStatus @default(OPEN)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  responses   Response[]
+  deal        Deal?
+  
+  @@map("orders")
+}
+
+enum OrderStatus {
+  OPEN
+  IN_DEAL
+  CLOSED
+}
+
+model Response {
+  id          String   @id @default(cuid())
+  order       Order    @relation(fields: [orderId], references: [id])
+  orderId     String
+  freelancer  User     @relation(fields: [freelancerId], references: [id])
+  freelancerId String
+  priceCents  Int
+  message     String?
+  createdAt   DateTime @default(now())
+  
+  @@map("responses")
+}
+
+model Deal {
+  id            String     @id @default(cuid())
+  order         Order      @relation(fields: [orderId], references: [id])
+  orderId       String     @unique
+  customer      User       @relation("CustomerDeals", fields: [customerId], references: [id])
+  customerId    String
+  freelancer    User       @relation("FreelancerDeals", fields: [freelancerId], references: [id])
+  freelancerId  String
+  status        DealStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  
+  // Relations
+  messages      Message[]
+  ratings      Rating[]
+  complaints   Complaint[]
+  
+  @@map("deals")
+}
+
+enum DealStatus {
+  ACTIVE
+  DELIVERED
+  COMPLETED
+  DISPUTED
+  CANCELED
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  deal       Deal     @relation(fields: [dealId], references: [id])
+  dealId     String
+  sender     User     @relation(fields: [senderId], references: [id])
+  senderId   String
+  type       String   // text/photo/video/voice/doc
+  payload    Json
+  createdAt  DateTime @default(now())
+  
+  @@map("messages")
+}
+
+model BalanceTransaction {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  amountCents Int      // + пополнение, - списание
+  reason      String
+  createdAt   DateTime @default(now())
+  adminId     String?  // кто провёл операцию
+  
+  @@map("balance_transactions")
+}
+
+model Rating {
+  id           String  @id @default(cuid())
+  deal         Deal    @relation(fields: [dealId], references: [id])
+  dealId       String
+  rater        User    @relation("RaterRatings", fields: [raterId], references: [id])
+  raterId      String
+  ratee        User    @relation("RateeRatings", fields: [rateeId], references: [id])
+  rateeId      String
+  score        Int     // 0..5
+  createdAt    DateTime @default(now())
+  
+  @@map("ratings")
+}
+
+model Favorite {
+  id       String   @id @default(cuid())
+  user     User     @relation(fields: [userId], references: [id])
+  userId   String
+  order    Order    @relation(fields: [orderId], references: [id])
+  orderId  String
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, orderId])
+  @@map("favorites")
+}
+
+model Complaint {
+  id        String           @id @default(cuid())
+  deal      Deal            @relation(fields: [dealId], references: [id])
+  dealId    String
+  author    User            @relation(fields: [authorId], references: [id])
+  authorId  String
+  text      String
+  createdAt DateTime        @default(now())
+  status    ComplaintStatus @default(OPEN)
+  
+  @@map("complaints")
+}
+
+enum ComplaintStatus {
+  OPEN
+  REVIEWED
+  CLOSED
+}
+
+model FeatureFlag {
+  key     String @id
+  enabled Boolean @default(false)
+  
+  @@map("feature_flags")
+}
