@@ -58,7 +58,7 @@ export const telegramAuthSchema = z.object({
 // Валидация для админских операций
 export const adminBalanceOperationSchema = z.object({
   userId: z.string().cuid('Неверный ID пользователя'),
-  amountCents: z.number().int().not(0, 'Сумма не может быть нулевой'),
+  amountCents: z.number().int().refine(val => val !== 0, 'Сумма не может быть нулевой'),
   reason: z.string().min(1, 'Причина обязательна').max(200, 'Причина слишком длинная')
 })
 
