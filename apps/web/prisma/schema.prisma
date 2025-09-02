@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  telegramId String  @unique
+  firstName String
+  lastName  String?
+  username  String?
+  photoUrl  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  orders     Order[]
+  responses  Response[]
+  deals      Deal[]    @relation("CustomerDeals")
+  dealsAsFreelancer Deal[] @relation("FreelancerDeals")
+  messages   Message[]
+  complaints Complaint[]
+  favorites  Favorite[]
+
+  @@map("users")
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  budgetCents Int
+  category    String
+  deadline    DateTime
+  status      String   @default("open") // open, in_progress, completed, cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customerId String
+  customer   User       @relation(fields: [customerId], references: [id])
+  responses  Response[]
+  deals      Deal[]
+  favorites  Favorite[]
+
+  @@map("orders")
+}
+
+model Response {
+  id            String   @id @default(cuid())
+  message       String
+  proposedPrice Int
+  status        String   @default("pending") // pending, accepted, rejected
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  orderId     String
+  order       Order      @relation(fields: [orderId], references: [id])
+  freelancerId String
+  freelancer  User       @relation(fields: [freelancerId], references: [id])
+  deals       Deal[]
+
+  @@map("responses")
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  finalPrice  Int
+  status      String   @default("active") // active, completed, cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  orderId     String
+  order       Order      @relation(fields: [orderId], references: [id])
+  responseId  String
+  response    Response   @relation(fields: [responseId], references: [id])
+  customerId  String
+  customer    User       @relation("CustomerDeals", fields: [customerId], references: [id])
+  freelancerId String
+  freelancer  User       @relation("FreelancerDeals", fields: [freelancerId], references: [id])
+  messages    Message[]
+  complaints  Complaint[]
+
+  @@map("deals")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  payload   String   // JSON as string for SQLite compatibility
+  createdAt DateTime @default(now())
+
+  // Relations
+  dealId    String
+  deal      Deal      @relation(fields: [dealId], references: [id])
+  senderId  String
+  sender    User      @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Complaint {
+  id          String   @id @default(cuid())
+  reason      String
+  description String
+  status      String   @default("pending") // pending, resolved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  complainantId String
+  complainant   User       @relation(fields: [complainantId], references: [id])
+  dealId        String
+  deal          Deal       @relation(fields: [dealId], references: [id])
+
+  @@map("complaints")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, orderId])
+  @@map("favorites")
+}

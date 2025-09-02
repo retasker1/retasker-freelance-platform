@@ -66,12 +66,18 @@ export default function HomePage() {
               </div>
             </div>
             <div className="space-y-2">
-              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              <a 
+                href="/orders" 
+                className="block w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center"
+              >
                 Создать заказ
-              </button>
-              <button className="w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              </a>
+              <a 
+                href="/orders" 
+                className="block w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center"
+              >
                 Просмотреть заказы
-              </button>
+              </a>
             </div>
           </div>
         ) : (
