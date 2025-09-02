@@ -79,3 +79,4 @@ export type PaginationRequest = z.infer<typeof paginationSchema>
 export type TelegramAuthRequest = z.infer<typeof telegramAuthSchema>
 export type AdminBalanceOperationRequest = z.infer<typeof adminBalanceOperationSchema>
 export type FeatureFlagRequest = z.infer<typeof featureFlagSchema>
+

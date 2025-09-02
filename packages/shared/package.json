@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
+    "retasker-freelance-platform": "file:../..",
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "prisma": "^5.0.0",
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.0.0"
   }
 }
+
