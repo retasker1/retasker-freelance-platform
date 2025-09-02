@@ -142,29 +142,7 @@ export enum MessageType {
   DOCUMENT = 'doc'
 }
 
-// API типы
-export interface CreateOrderRequest {
-  title: string
-  description: string
-  budgetCents: number
-}
-
-export interface CreateResponseRequest {
-  priceCents: number
-  message?: string
-}
-
-export interface CreateDealRequest {
-  responseId: string
-}
-
-export interface RateDealRequest {
-  score: number
-}
-
-export interface CreateComplaintRequest {
-  text: string
-}
+// API типы теперь экспортируются из validation.ts
 
 // Утилиты
 export type UserRole = 'customer' | 'freelancer' | 'admin'
