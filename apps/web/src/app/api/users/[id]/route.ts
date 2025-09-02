@@ -1,130 +1,112 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
-const prisma = new PrismaClient();
-
-// Схема валидации для обновления пользователя
-const updateUserSchema = z.object({
-  firstName: z.string().min(1).max(50).optional(),
-  lastName: z.string().max(50).optional(),
-  username: z.string().max(50).optional(),
-  photoUrl: z.string().url().optional(),
-  isActive: z.boolean().optional(),
-});
-
-// GET /api/users/[id] - получить пользователя по ID
+// GET /api/users/[id] - получение профиля пользователя
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params
+
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
-        telegramId: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        photoUrl: true,
-        isActive: true,
+        displayName: true,
+        avatarUrl: true,
+        rating: true,
+        ratingsCount: true,
+        balanceCents: true,
         createdAt: true,
-        updatedAt: true,
+        _count: {
+          select: {
+            orders: true,
+            responses: true,
+            dealsAsCustomer: true,
+            dealsAsFreelancer: true
+          }
+        },
         orders: {
+          where: { status: 'OPEN' },
           select: {
             id: true,
             title: true,
-            status: true,
             budgetCents: true,
-            createdAt: true,
-          }
+            createdAt: true
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
         },
         responses: {
           select: {
             id: true,
-            message: true,
-            proposedPrice: true,
-            status: true,
+            priceCents: true,
             createdAt: true,
             order: {
               select: {
                 id: true,
                 title: true,
-                status: true,
+                budgetCents: true
               }
             }
-          }
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5
         }
       }
-    });
+    })
 
     if (!user) {
       return NextResponse.json(
         { error: 'Пользователь не найден' },
         { status: 404 }
-      );
+      )
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json(user)
   } catch (error) {
-    console.error('Error fetching user:', error);
+    console.error('Error fetching user:', error)
     return NextResponse.json(
-      { error: 'Ошибка загрузки пользователя' },
+      { error: 'Ошибка при получении пользователя' },
       { status: 500 }
-    );
+    )
   }
 }
 
-// PUT /api/users/[id] - обновить пользователя
+// PUT /api/users/[id] - обновление профиля пользователя
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const validatedData = updateUserSchema.parse(body);
+    const { id } = params
+    const body = await request.json()
 
-    // Проверяем, существует ли пользователь
-    const existingUser = await prisma.user.findUnique({
-      where: { id: params.id }
-    });
-
-    if (!existingUser) {
-      return NextResponse.json(
-        { error: 'Пользователь не найден' },
-        { status: 404 }
-      );
-    }
-
-    const user = await prisma.user.update({
-      where: { id: params.id },
-      data: validatedData,
+    // TODO: Проверить права доступа (только владелец профиля)
+    
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        displayName: body.displayName,
+        avatarUrl: body.avatarUrl
+      },
       select: {
         id: true,
-        telegramId: true,
-        firstName: true,
-        lastName: true,
-        username: true,
-        photoUrl: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+        displayName: true,
+        avatarUrl: true,
+        rating: true,
+        ratingsCount: true,
+        balanceCents: true
       }
-    });
+    })
 
-    return NextResponse.json(user);
+    return NextResponse.json(updatedUser)
   } catch (error) {
-    console.error('Error updating user:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Ошибка валидации данных', details: error.errors },
-        { status: 400 }
-      );
-    }
+    console.error('Error updating user:', error)
     return NextResponse.json(
-      { error: 'Ошибка обновления пользователя' },
+      { error: 'Ошибка при обновлении пользователя' },
       { status: 500 }
-    );
+    )
   }
 }
