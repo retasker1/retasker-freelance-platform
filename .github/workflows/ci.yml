@@ -19,10 +19,37 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          
+
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Debug - Check files
+        run: |
+          echo "=== Current directory ==="
+          pwd
+          echo "=== Files in root ==="
+          ls -la
+          echo "=== Check package-lock.json ==="
+          if [ -f "package-lock.json" ]; then
+            echo "package-lock.json exists"
+            head -5 package-lock.json
+          else
+            echo "package-lock.json NOT FOUND"
+          fi
+
       - name: Install dependencies
-        run: npm ci
-        
+        run: npm install
+
+      - name: Install Prisma dependencies
+        run: |
+          cd apps/web
+          npm install prisma @prisma/client
+
+      - name: Generate Prisma Client
+        run: |
+          cd apps/web
+          npx prisma generate
+
       - name: Run linter
         run: npm run lint || true
         
