@@ -45,6 +45,9 @@ export default function OrdersPage() {
             to="/orders/new"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             Создать заказ
           </Link>
         </div>
@@ -104,17 +107,26 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        {orders.length === 0 && (
-          <div className="bg-white shadow rounded-lg p-6 text-center">
-            <p className="text-gray-600 mb-4">Заказы не найдены</p>
-            <Link
-              to="/orders/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              Создать первый заказ
-            </Link>
-          </div>
-        )}
+                         {orders.length === 0 && (
+                   <div className="bg-white shadow rounded-lg p-6 text-center">
+                     <div className="text-6xl mb-4">📋</div>
+                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                       Заказы не найдены
+                     </h3>
+                     <p className="text-gray-600 mb-6">
+                       Создайте свой первый заказ и начните получать отклики от исполнителей
+                     </p>
+                     <Link
+                       to="/orders/new"
+                       className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                     >
+                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                       </svg>
+                       Создать первый заказ
+                     </Link>
+                   </div>
+                 )}
       </div>
     </div>
   );
