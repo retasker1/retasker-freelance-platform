@@ -4,11 +4,9 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['styled-jsx'],
   },
-  // Отключаем статическую генерацию полностью
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
+  // Отключаем статическую генерацию для проблемных страниц
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
   },
 }
 

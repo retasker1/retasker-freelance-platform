@@ -2,11 +2,28 @@ export const dynamic = 'force-dynamic';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">404</h1>
-        <p className="text-gray-300 mb-8">Страница не найдена</p>
-        <a href="/" className="text-blue-400 hover:text-blue-300">
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      backgroundColor: '#0f172a' 
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ 
+          fontSize: '2.25rem', 
+          fontWeight: 'bold', 
+          color: 'white', 
+          marginBottom: '1rem' 
+        }}>404</h1>
+        <p style={{ 
+          color: '#cbd5e1', 
+          marginBottom: '2rem' 
+        }}>Страница не найдена</p>
+        <a href="/" style={{ 
+          color: '#60a5fa', 
+          textDecoration: 'none' 
+        }}>
           Вернуться на главную
         </a>
       </div>

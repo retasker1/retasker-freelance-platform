@@ -11,13 +11,34 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-white mb-4">500</h1>
-        <p className="text-gray-300 mb-8">Произошла ошибка сервера</p>
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      backgroundColor: '#0f172a' 
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1 style={{ 
+          fontSize: '2.25rem', 
+          fontWeight: 'bold', 
+          color: 'white', 
+          marginBottom: '1rem' 
+        }}>500</h1>
+        <p style={{ 
+          color: '#cbd5e1', 
+          marginBottom: '2rem' 
+        }}>Произошла ошибка сервера</p>
         <button
           onClick={reset}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer'
+          }}
         >
           Попробовать снова
         </button>
