@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@retasker/shared'],
-  output: 'standalone',
-  trailingSlash: true,
   experimental: {
     serverComponentsExternalPackages: ['styled-jsx'],
   },
-  generateStaticParams: false,
+  // Отключаем статическую генерацию полностью
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
 }
 
 module.exports = nextConfig
