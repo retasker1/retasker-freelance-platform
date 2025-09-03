@@ -7,10 +7,6 @@ const nextConfig = {
   // Отключаем статическую генерацию полностью
   output: 'standalone',
   trailingSlash: true,
-  // Отключаем статическую генерацию для всех страниц
-  generateStaticParams: false,
-  // Отключаем ISR
-  revalidate: false,
 }
 
 module.exports = nextConfig
