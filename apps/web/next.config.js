@@ -5,8 +5,13 @@ const nextConfig = {
     serverComponentsExternalPackages: ['styled-jsx'],
   },
   // Отключаем статическую генерацию полностью
-  output: 'standalone',
+  output: 'export',
   trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  // Отключаем API routes для статического экспорта
+  distDir: 'dist',
 }
 
 module.exports = nextConfig
