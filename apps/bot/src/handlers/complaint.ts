@@ -133,7 +133,7 @@ export async function handleComplaintReason(ctx: Context, reason: string) {
   }
 }
 
-export async function submitComplaint(ctx: Context, description: string) {
+export async function submitComplaint(ctx: Context) {
   const botCtx = ctx as BotContext;
   const apiService = botCtx.apiService!;
   

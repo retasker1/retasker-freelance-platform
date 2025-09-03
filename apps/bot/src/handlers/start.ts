@@ -111,7 +111,7 @@ export async function showDealInfo(ctx: Context, deal: Deal, userId: string) {
   const isFreelancer = deal.freelancerId === userId;
   
   let roleText = '';
-  let actions: Array<Array<{ text: string; callback_data: string }>> = [];
+  const actions: Array<Array<{ text: string; callback_data: string }>> = [];
 
   if (isCustomer) {
     roleText = 'Вы - заказчик';

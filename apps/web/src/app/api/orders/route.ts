@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
       title?: { contains: string; mode: 'insensitive' };
       budgetCents?: { gte?: number; lte?: number };
       status?: string;
+      OR?: Array<{ title: { contains: string; mode: 'insensitive' } } | { description: { contains: string; mode: 'insensitive' } }>;
     } = {}
     
     // Добавляем фильтр по статусу только если он указан

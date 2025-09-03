@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
         data: {
           tgId: authData.id.toString(),
           displayName: authData.first_name + (authData.last_name ? ` ${authData.last_name}` : ''),
-          isActive: true,
         }
       });
     } else {
@@ -84,8 +83,6 @@ export async function POST(request: NextRequest) {
         where: { id: user.id },
         data: {
           displayName: authData.first_name + (authData.last_name ? ` ${authData.last_name}` : ''),
-          username: authData.username || null,
-          isActive: true,
         }
       });
     }
@@ -97,8 +94,6 @@ export async function POST(request: NextRequest) {
         id: user.id,
         tgId: user.tgId,
         displayName: user.displayName,
-        username: user.username,
-        isActive: user.isActive,
       }
     });
 

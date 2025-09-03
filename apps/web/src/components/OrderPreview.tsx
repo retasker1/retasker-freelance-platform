@@ -4,8 +4,9 @@ interface OrderPreviewData {
   title: string;
   description: string;
   budgetCents: number;
-  category: string;
-  deadline: string;
+  status: string;
+  category?: string;
+  deadline?: string;
 }
 
 interface OrderPreviewProps {
@@ -16,15 +17,7 @@ interface OrderPreviewProps {
   isLoading?: boolean;
 }
 
-const categories = [
-  { value: 'web-development', label: 'Веб-разработка' },
-  { value: 'mobile-development', label: 'Мобильная разработка' },
-  { value: 'design', label: 'Дизайн' },
-  { value: 'writing', label: 'Копирайтинг' },
-  { value: 'translation', label: 'Переводы' },
-  { value: 'marketing', label: 'Маркетинг' },
-  { value: 'other', label: 'Другое' },
-];
+
 
 export default function OrderPreview({ 
   orderData, 
@@ -33,10 +26,7 @@ export default function OrderPreview({
   onCancel, 
   isLoading = false 
 }: OrderPreviewProps) {
-  const getCategoryText = (category: string) => {
-    const categoryObj = categories.find(cat => cat.value === category);
-    return categoryObj ? categoryObj.label : category;
-  };
+
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-2xl mx-auto">
@@ -56,26 +46,21 @@ export default function OrderPreview({
         </div>
 
         {/* Детали */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h3 className="text-lg font-semibold text-white mb-2">Бюджет</h3>
-                         <p className="text-gray-300">
-               {(orderData.budgetCents / 100).toLocaleString('en-US', {
-                 style: 'currency',
-                 currency: 'USD',
-                 minimumFractionDigits: 0,
-               })}
-             </p>
+            <p className="text-gray-300">
+              {(orderData.budgetCents / 100).toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+              })}
+            </p>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-white mb-2">Категория</h3>
-            <p className="text-gray-300">{getCategoryText(orderData.category)}</p>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-2">Срок выполнения</h3>
-            <p className="text-gray-300">{new Date(orderData.deadline).toLocaleDateString('ru-RU')}</p>
+            <h3 className="text-lg font-semibold text-white mb-2">Статус</h3>
+            <p className="text-gray-300">{orderData.status}</p>
           </div>
         </div>
 

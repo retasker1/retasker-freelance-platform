@@ -1,4 +1,4 @@
-import { Telegraf, Context } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import { config } from 'dotenv';
 import { ApiService } from './services/api';
 import { startHandler, showDealInfo } from './handlers/start';
@@ -142,7 +142,7 @@ bot.on('text', async (ctx) => {
   // Если ожидается описание жалобы
   if (botCtx.dealId && botCtx.complaintReason) {
     const { submitComplaint } = await import('./handlers/complaint');
-    await submitComplaint(ctx, ctx.message.text);
+    await submitComplaint(ctx);
     return;
   }
 

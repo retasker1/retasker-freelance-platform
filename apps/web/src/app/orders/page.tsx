@@ -17,6 +17,8 @@ export default function OrdersPage() {
     description: string;
     budgetCents: number;
     status: string;
+    category?: string;
+    deadline?: string;
   } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +51,12 @@ export default function OrdersPage() {
     description: string;
     budgetCents: number;
   }) => {
-    setPreviewData(orderData);
+    setPreviewData({
+      ...orderData,
+      status: 'OPEN',
+      category: 'other',
+      deadline: 'Не указан'
+    });
     setViewMode('preview');
   };
 

@@ -1,5 +1,5 @@
 import { Context } from 'telegraf';
-import { BotContext, Deal, Message } from '../types';
+import { BotContext, Deal } from '../types';
 
 export async function chatHandler(ctx: Context) {
   const botCtx = ctx as BotContext;

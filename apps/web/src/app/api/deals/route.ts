@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: { OR: Array<{ customerId: string } | { freelancerId: string }> } = {
+    const where: { 
+      OR: Array<{ customerId: string } | { freelancerId: string }>;
+      status?: string;
+    } = {
       OR: [
         { customerId: userId },
         { freelancerId: userId }
