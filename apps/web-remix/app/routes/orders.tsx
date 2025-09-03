@@ -1,5 +1,6 @@
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, Link, redirect } from "react-router";
 import type { Route } from "./+types/orders";
+import { requireAuth } from "../lib/auth.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -9,6 +10,9 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  // Проверяем аутентификацию
+  const { user } = await requireAuth(request);
+  
   const url = new URL(request.url);
   const status = url.searchParams.get("status") || "";
   const search = url.searchParams.get("search") || "";
@@ -18,19 +22,25 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw new Response("Failed to load orders", { status: response.status });
   }
   
-  return response.json();
+  const data = await response.json();
+  return { ...data, user };
 }
 
 export default function OrdersPage() {
-  const { orders } = useLoaderData<typeof loader>();
+  const { orders, user } = useLoaderData<typeof loader>();
 
   return (
     <div className="px-4 py-6 sm:px-0">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Заказы
-          </h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Заказы
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Добро пожаловать, {user.firstName}!
+            </p>
+          </div>
           <Link
             to="/orders/new"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
