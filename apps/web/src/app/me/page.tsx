@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 export default function ProfilePage() {
   return (
     <div className="px-4 py-6 sm:px-0">

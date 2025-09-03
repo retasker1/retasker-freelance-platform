@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
+export const dynamic = 'force-dynamic';
 import { Order } from '../../lib/api';
 import OrdersList from '../../components/OrdersList';
 import CreateOrderForm from '../../components/CreateOrderForm';

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 // Интерфейс для данных Telegram пользователя
 interface TelegramUser {
   id: number;
