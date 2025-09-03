@@ -5,6 +5,8 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Retasker — Биржа фриланса в Telegram',
   description: 'MVP версия Retasker — платформа для анонимного общения между заказчиками и исполнителями через Telegram бота с виртуальным балансом',
