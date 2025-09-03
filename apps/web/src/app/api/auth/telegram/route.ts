@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
         data: {
           tgId: authData.id.toString(),
           displayName: authData.first_name + (authData.last_name ? ` ${authData.last_name}` : ''),
-          username: authData.username || null,
           isActive: true,
         }
       });
