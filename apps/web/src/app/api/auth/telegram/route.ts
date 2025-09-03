@@ -30,7 +30,7 @@ function verifyTelegramAuth(authData: TelegramAuthData): boolean {
   // Создаем строку для проверки
   const dataCheckString = Object.keys(data)
     .sort()
-    .map(key => `${key}=${data[key]}`)
+    .map(key => `${key}=${(data as Record<string, unknown>)[key]}`)
     .join('\n');
   
   // Создаем HMAC
