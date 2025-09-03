@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const where: any = {
+    const where: { OR: Array<{ customerId: string } | { freelancerId: string }> } = {
       OR: [
         { customerId: userId },
         { freelancerId: userId }

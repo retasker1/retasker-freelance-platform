@@ -94,7 +94,7 @@ export async function PUT(
       );
     }
 
-    const updateData: any = {};
+    const updateData: { status?: string; finalPrice?: number } = {};
     if (status) updateData.status = status;
     if (finalPrice) updateData.finalPrice = finalPrice;
 

@@ -14,44 +14,8 @@ interface TelegramUser {
 }
 
 export default function HomePage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // Функция для обработки данных от Telegram
-  const handleTelegramAuth = async (userData: TelegramUser) => {
-    setIsLoading(true);
-    
-    try {
-      // Отправляем данные на сервер для аутентификации
-      const response = await fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setUser(userData);
-        setIsAuthenticated(true);
-        
-        // Сохраняем данные пользователя в localStorage
-        localStorage.setItem('telegramUser', JSON.stringify(userData));
-        
-        // Перенаправляем на страницу заказов
-        window.location.href = '/orders';
-      } else {
-        throw new Error('Ошибка аутентификации');
-      }
-    } catch (error) {
-      console.error('Ошибка аутентификации:', error);
-      alert('Ошибка входа через Telegram. Попробуйте еще раз.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Проверяем, есть ли сохраненные данные пользователя
   useEffect(() => {

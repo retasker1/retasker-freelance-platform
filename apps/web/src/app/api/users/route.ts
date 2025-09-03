@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role') // customer, freelancer, admin
     const telegramId = searchParams.get('telegramId') // для поиска по Telegram ID
 
-    const where: any = {}
+    const where: { role?: string; tgId?: string } = {}
     if (role) {
       // Логика фильтрации по роли будет добавлена позже
     }

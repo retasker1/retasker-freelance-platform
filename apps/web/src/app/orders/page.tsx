@@ -12,7 +12,12 @@ type ViewMode = 'list' | 'create' | 'preview' | 'edit' | 'view';
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<{
+    title: string;
+    description: string;
+    budgetCents: number;
+    status: string;
+  } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +44,11 @@ export default function OrdersPage() {
   }, []);
 
   // Обработка данных формы (переход к предварительному просмотру)
-  const handleFormSubmit = (orderData: any) => {
+  const handleFormSubmit = (orderData: {
+    title: string;
+    description: string;
+    budgetCents: number;
+  }) => {
     setPreviewData(orderData);
     setViewMode('preview');
   };
@@ -85,7 +94,11 @@ export default function OrdersPage() {
   };
 
   // Редактирование заказа
-  const handleEditOrder = async (orderData: any) => {
+  const handleEditOrder = async (orderData: {
+    title: string;
+    description: string;
+    budgetCents: number;
+  }) => {
     if (!currentOrder) return;
 
     try {

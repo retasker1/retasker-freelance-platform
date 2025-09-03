@@ -18,13 +18,17 @@ export async function GET(request: NextRequest) {
       q: query,
       minBudget,
       maxBudget,
-      status: status as any,
+      status: status as string,
       page,
       limit
     })
 
     // Построение фильтра
-    const where: any = {}
+    const where: { 
+      title?: { contains: string; mode: 'insensitive' };
+      budgetCents?: { gte?: number; lte?: number };
+      status?: string;
+    } = {}
     
     // Добавляем фильтр по статусу только если он указан
     if (searchParamsValidated.status) {

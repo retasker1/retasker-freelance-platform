@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
+// Интерфейс для данных аутентификации Telegram
+interface TelegramAuthData {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+}
+
 // Функция для проверки подписи Telegram
-function verifyTelegramAuth(authData: any): boolean {
+function verifyTelegramAuth(authData: TelegramAuthData): boolean {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
     console.error('TELEGRAM_BOT_TOKEN не найден в переменных окружения');
