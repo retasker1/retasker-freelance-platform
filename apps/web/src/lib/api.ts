@@ -1,6 +1,6 @@
 // Утилиты для работы с API
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data?: T
   error?: string
   pagination?: {
