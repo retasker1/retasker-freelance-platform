@@ -4,6 +4,13 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['styled-jsx'],
   },
+  // Отключаем статическую генерацию полностью
+  output: 'standalone',
+  trailingSlash: true,
+  // Отключаем статическую генерацию для всех страниц
+  generateStaticParams: false,
+  // Отключаем ISR
+  revalidate: false,
 }
 
 module.exports = nextConfig
