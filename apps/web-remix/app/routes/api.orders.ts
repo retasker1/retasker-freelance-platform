@@ -1,4 +1,5 @@
 import type { Route } from "./+types/api.orders";
+import { prisma } from "../lib/prisma";
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -6,47 +7,44 @@ export async function loader({ request }: Route.LoaderArgs) {
     const status = url.searchParams.get("status");
     const search = url.searchParams.get("search");
 
-    // TODO: Подключить Prisma для получения заказов
-    // Пока возвращаем тестовые данные
-    const orders = [
-      {
-        id: "1",
-        title: "Разработка лендинга",
-        description: "Нужен современный лендинг для IT-компании",
-        budgetCents: 50000, // 500 USD
-        status: "OPEN",
-        category: "web-development",
-        deadline: "2024-01-15",
-        createdAt: "2024-01-01T10:00:00Z",
-      },
-      {
-        id: "2", 
-        title: "Дизайн логотипа",
-        description: "Создание логотипа для стартапа",
-        budgetCents: 15000, // 150 USD
-        status: "IN_PROGRESS",
-        category: "design",
-        deadline: "2024-01-10",
-        createdAt: "2024-01-02T14:30:00Z",
-      },
-    ];
-
-    // Фильтрация по статусу
-    let filteredOrders = orders;
+    // Строим условия для фильтрации
+    const where: any = {};
+    
     if (status) {
-      filteredOrders = orders.filter(order => order.status === status);
+      where.status = status;
     }
-
-    // Поиск по тексту
+    
     if (search) {
-      const searchLower = search.toLowerCase();
-      filteredOrders = filteredOrders.filter(order => 
-        order.title.toLowerCase().includes(searchLower) ||
-        order.description.toLowerCase().includes(searchLower)
-      );
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
-    return Response.json({ orders: filteredOrders });
+    // Получаем заказы из базы данных
+    const orders = await prisma.order.findMany({
+      where,
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          }
+        },
+        _count: {
+          select: {
+            deals: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return Response.json({ orders });
   } catch (error) {
     console.error("Orders API error:", error);
     return new Response("Internal server error", { status: 500 });
@@ -60,26 +58,35 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const body = await request.json();
-    const { title, description, budgetCents, category, deadline } = body;
+    const { title, description, budgetCents, category, deadline, customerId } = body;
 
     // Валидация данных
-    if (!title || !description || !budgetCents) {
+    if (!title || !description || !budgetCents || !customerId) {
       return new Response("Missing required fields", { status: 400 });
     }
 
-    // TODO: Подключить Prisma для создания заказа
-    // TODO: Добавить аутентификацию пользователя
-
-    const newOrder = {
-      id: Date.now().toString(),
-      title,
-      description,
-      budgetCents: parseInt(budgetCents),
-      status: "OPEN",
-      category: category || "other",
-      deadline: deadline || null,
-      createdAt: new Date().toISOString(),
-    };
+    // Создаем заказ в базе данных
+    const newOrder = await prisma.order.create({
+      data: {
+        title,
+        description,
+        budgetCents: parseInt(budgetCents),
+        category: category || "other",
+        deadline: deadline ? new Date(deadline) : null,
+        customerId,
+        status: "OPEN"
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+          }
+        }
+      }
+    });
 
     return Response.json({ order: newOrder }, { status: 201 });
   } catch (error) {

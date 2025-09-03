@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Модель пользователя
+model User {
+  id        String   @id @default(cuid())
+  telegramId String  @unique
+  firstName String
+  lastName  String?
+  username  String?
+  photoUrl  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  orders     Order[]     @relation("OrderCustomer")
+  deals      Deal[]      @relation("DealCustomer")
+  freelancerDeals Deal[] @relation("DealFreelancer")
+  messages   Message[]
+
+  @@map("users")
+}
+
+// Модель заказа
+model Order {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  budgetCents Int
+  status      OrderStatus @default(OPEN)
+  category    String   @default("other")
+  deadline    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Связи
+  customerId String
+  customer   User   @relation("OrderCustomer", fields: [customerId], references: [id])
+  deals      Deal[]
+  messages   Message[]
+
+  @@map("orders")
+}
+
+// Модель сделки
+model Deal {
+  id           String     @id @default(cuid())
+  status       DealStatus @default(PENDING)
+  amountCents  Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deliveredAt  DateTime?
+  completedAt  DateTime?
+
+  // Связи
+  orderId      String
+  order        Order  @relation(fields: [orderId], references: [id])
+  customerId   String
+  customer     User   @relation("DealCustomer", fields: [customerId], references: [id])
+  freelancerId String
+  freelancer   User   @relation("DealFreelancer", fields: [freelancerId], references: [id])
+  messages     Message[]
+
+  @@map("deals")
+}
+
+// Модель сообщения
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  isFromBot Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Связи
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id])
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+  dealId  String?
+  deal    Deal?   @relation(fields: [dealId], references: [id])
+
+  @@map("messages")
+}
+
+// Енумы
+enum OrderStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum DealStatus {
+  PENDING
+  ACTIVE
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
