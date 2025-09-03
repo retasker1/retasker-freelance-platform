@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 export default function Error({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   error,
