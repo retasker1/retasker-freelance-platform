@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Order } from '../lib/api';
 
 interface OrdersListProps {
@@ -19,62 +19,46 @@ export default function OrdersList({
   isLoading = false 
 }: OrdersListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+
   const [selectedStatus, setSelectedStatus] = useState('');
 
-  const categories = [
-    { value: '', label: 'Все категории' },
-    { value: 'web-development', label: 'Веб-разработка' },
-    { value: 'mobile-development', label: 'Мобильная разработка' },
-    { value: 'design', label: 'Дизайн' },
-    { value: 'writing', label: 'Копирайтинг' },
-    { value: 'translation', label: 'Переводы' },
-    { value: 'marketing', label: 'Маркетинг' },
-    { value: 'other', label: 'Другое' },
-  ];
+
 
   const statusOptions = [
     { value: '', label: 'Все статусы' },
-    { value: 'open', label: 'Открыт' },
-    { value: 'in_progress', label: 'В работе' },
-    { value: 'completed', label: 'Завершен' },
-    { value: 'cancelled', label: 'Отменен' },
+    { value: 'OPEN', label: 'Открыт' },
+    { value: 'IN_DEAL', label: 'В сделке' },
+    { value: 'CLOSED', label: 'Закрыт' },
   ];
 
   // Фильтрация заказов
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || order.category === selectedCategory;
     const matchesStatus = !selectedStatus || order.status === selectedStatus;
     
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'OPEN': return 'bg-green-100 text-green-800';
+      case 'IN_DEAL': return 'bg-blue-100 text-blue-800';
+      case 'CLOSED': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'open': return 'Открыт';
-      case 'in_progress': return 'В работе';
-      case 'completed': return 'Завершен';
-      case 'cancelled': return 'Отменен';
+      case 'OPEN': return 'Открыт';
+      case 'IN_DEAL': return 'В сделке';
+      case 'CLOSED': return 'Закрыт';
       default: return status;
     }
   };
 
-  const getCategoryText = (category: string) => {
-    const categoryObj = categories.find(cat => cat.value === category);
-    return categoryObj ? categoryObj.label : category;
-  };
+
 
   if (isLoading) {
     return (
@@ -120,24 +104,7 @@ export default function OrdersList({
             />
           </div>
 
-          {/* Категория */}
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-              Категория
-            </label>
-            <select
-              id="category"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {categories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </div>
+
 
           {/* Статус */}
           <div>
@@ -205,14 +172,8 @@ export default function OrdersList({
                          minimumFractionDigits: 0,
                        })}
                      </span>
-                    <span className="flex items-center gap-1">
-                      <span className="font-medium">Категория:</span>
-                      {getCategoryText(order.category)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="font-medium">Срок:</span>
-                      {new Date(order.deadline).toLocaleDateString('ru-RU')}
-                    </span>
+
+
                   </div>
                 </div>
                 

@@ -50,15 +50,22 @@ export default function OrdersPage() {
 
     try {
       setIsLoading(true);
+      
+      // Получаем данные пользователя из localStorage
+      const telegramUser = localStorage.getItem('telegramUser');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Если пользователь аутентифицирован, добавляем его данные в заголовки
+      if (telegramUser) {
+        headers['x-telegram-user'] = telegramUser;
+      }
+      
       const response = await fetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...previewData,
-          customerId: 'temp-user-id', // Временно используем тестового пользователя
-        }),
+        headers,
+        body: JSON.stringify(previewData),
       });
 
       if (!response.ok) {
@@ -303,14 +310,7 @@ export default function OrdersPage() {
                            })}
                          </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Категория:</span>
-                        <span className="text-white">{currentOrder.category}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Срок выполнения:</span>
-                        <span className="text-white">{new Date(currentOrder.deadline).toLocaleDateString('ru-RU')}</span>
-                      </div>
+
                       <div className="flex justify-between">
                         <span className="text-gray-400">Статус:</span>
                         <span className="text-white">{currentOrder.status}</span>

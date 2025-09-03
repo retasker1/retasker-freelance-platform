@@ -27,9 +27,9 @@ export class ApiService {
       console.log('API: Response status:', response.status);
       console.log('API: Response data:', response.data);
       
-      if (response.data.users && response.data.users.length > 0) {
-        console.log('API: User found:', response.data.users[0]);
-        return response.data.users[0];
+      if (response.data.data && response.data.data.users && response.data.data.users.length > 0) {
+        console.log('API: User found:', response.data.data.users[0]);
+        return response.data.data.users[0];
       }
       console.log('API: No user found');
       return null;
@@ -40,16 +40,14 @@ export class ApiService {
   }
 
   // Получить сделки пользователя
-  async getUserDeals(userId: string, status?: string): Promise<Deal[]> {
+  async getUserDeals(userId: string): Promise<Deal[]> {
     try {
-      const url = status 
-        ? `/api/deals?userId=${userId}&status=${status}`
-        : `/api/deals?userId=${userId}`;
-      
-      const response = await this.client.get<ApiResponse<{ deals: Deal[] }>>(url);
+      const response = await this.client.get<ApiResponse<Deal[]>>(
+        `/api/deals?userId=${userId}`
+      );
       
       if (response.data.ok && response.data.data) {
-        return response.data.data.deals;
+        return response.data.data;
       }
       return [];
     } catch (error) {
@@ -59,10 +57,10 @@ export class ApiService {
   }
 
   // Получить сделку по ID
-  async getDeal(dealId: string, userId: string): Promise<Deal | null> {
+  async getDeal(dealId: string): Promise<Deal | null> {
     try {
       const response = await this.client.get<ApiResponse<Deal>>(
-        `/api/deals/${dealId}?userId=${userId}`
+        `/api/deals/${dealId}`
       );
       
       if (response.data.ok && response.data.data) {
@@ -75,90 +73,85 @@ export class ApiService {
     }
   }
 
-  // Отправить результат (для исполнителя)
-  async deliverResult(dealId: string, userId: string): Promise<boolean> {
+  // Создать сообщение
+  async createMessage(dealId: string, senderId: string, content: string, isFromCustomer: boolean): Promise<Message | null> {
     try {
-      const response = await this.client.post<ApiResponse>(
-        `/api/deals/${dealId}/deliver`,
-        { userId }
-      );
-      
-      return response.data.ok;
-    } catch (error) {
-      console.error('Error delivering result:', error);
-      return false;
-    }
-  }
-
-  // Подтвердить завершение (для заказчика)
-  async confirmCompletion(dealId: string, userId: string): Promise<boolean> {
-    try {
-      const response = await this.client.post<ApiResponse>(
-        `/api/deals/${dealId}/confirm`,
-        { userId }
-      );
-      
-      return response.data.ok;
-    } catch (error) {
-      console.error('Error confirming completion:', error);
-      return false;
-    }
-  }
-
-  // Подать жалобу
-  async submitComplaint(
-    dealId: string, 
-    userId: string, 
-    reason: string, 
-    description: string
-  ): Promise<boolean> {
-    try {
-      const response = await this.client.post<ApiResponse>(
-        `/api/deals/${dealId}/complaint`,
-        { userId, reason, description }
-      );
-      
-      return response.data.ok;
-    } catch (error) {
-      console.error('Error submitting complaint:', error);
-      return false;
-    }
-  }
-
-  // Получить сообщения чата
-  async getChatMessages(dealId: string): Promise<Message[]> {
-    try {
-      const response = await this.client.get<ApiResponse<{ messages: Message[] }>>(
-        `/api/deals/${dealId}/messages`
-      );
-      
-      if (response.data.ok && response.data.data) {
-        return response.data.data.messages;
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching chat messages:', error);
-      return [];
-    }
-  }
-
-  // Отправить сообщение в чат
-  async sendMessage(
-    dealId: string, 
-    senderId: string, 
-    content: string, 
-    isFromCustomer: boolean
-  ): Promise<boolean> {
-    try {
-      const response = await this.client.post<ApiResponse>(
+      const response = await this.client.post<ApiResponse<Message>>(
         `/api/deals/${dealId}/messages`,
         { senderId, content, isFromCustomer }
       );
       
+      if (response.data.ok && response.data.data) {
+        return response.data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error creating message:', error);
+      return null;
+    }
+  }
+
+  // Получить сообщения
+  async getMessages(dealId: string): Promise<Message[]> {
+    try {
+      const response = await this.client.get<ApiResponse<Message[]>>(
+        `/api/deals/${dealId}/messages`
+      );
+      
+      if (response.data.ok && response.data.data) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+  }
+
+  // Доставить результат
+  async deliverDeal(dealId: string, freelancerId: string): Promise<boolean> {
+    try {
+      const response = await this.client.post<ApiResponse>(
+        `/api/deals/${dealId}/deliver`,
+        { userId: freelancerId }
+      );
+      
       return response.data.ok;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error delivering deal:', error);
       return false;
     }
   }
+
+  // Подтвердить сделку
+  async confirmDeal(dealId: string, customerId: string): Promise<boolean> {
+    try {
+      const response = await this.client.post<ApiResponse>(
+        `/api/deals/${dealId}/confirm`,
+        { userId: customerId }
+      );
+      
+      return response.data.ok;
+    } catch (error) {
+      console.error('Error confirming deal:', error);
+      return false;
+    }
+  }
+
+  // Создать жалобу
+  async createComplaint(dealId: string, customerId: string, reason: string): Promise<boolean> {
+    try {
+      const response = await this.client.post<ApiResponse>(
+        `/api/deals/${dealId}/complaint`,
+        { userId: customerId, reason, description: reason }
+      );
+      
+      return response.data.ok;
+    } catch (error) {
+      console.error('Error creating complaint:', error);
+      return false;
+    }
+  }
+
+
 }

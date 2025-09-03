@@ -1,10 +1,9 @@
 import { Context } from 'telegraf';
-import { ApiService } from '../services/api';
-import { BotContext } from '../types';
+import { BotContext, Deal, User } from '../types';
 
 export async function startHandler(ctx: Context) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   console.log('=== START COMMAND RECEIVED ===');
   console.log('User ID:', ctx.from?.id);
@@ -43,20 +42,35 @@ export async function startHandler(ctx: Context) {
     botCtx.userId = user.id;
     console.log('User found, userId set to:', user.id);
 
-    // Проверяем, есть ли параметр start (для перехода к сделке)
+    // Проверяем, есть ли параметр start (для перехода к сделке или веб-аутентификации)
     const startParam = ctx.message && 'text' in ctx.message 
       ? ctx.message.text.split(' ')[1] 
       : null;
 
     if (startParam && startParam.startsWith('deal_')) {
       const dealId = startParam.replace('deal_', '');
-      const deal = await apiService.getDeal(dealId, user.id);
+      const deal = await apiService.getDeal(dealId);
       
       if (deal) {
         botCtx.dealId = dealId;
         await showDealInfo(ctx, deal, user.id);
         return;
       }
+    }
+
+    // Обработка веб-аутентификации
+    if (startParam === 'web_auth') {
+      await ctx.reply(
+        '🔐 Аутентификация для веб-сайта\n\n' +
+        'Вы успешно аутентифицированы в Telegram!\n\n' +
+        'Теперь вы можете:\n' +
+        '• Создавать заказы на сайте\n' +
+        '• Управлять своими проектами\n' +
+        '• Общаться через бота\n\n' +
+        'Перейдите на сайт: https://retasker.com\n\n' +
+        'Ваш аккаунт уже связан с Telegram!'
+      );
+      return;
     }
 
     // Показываем главное меню
@@ -68,7 +82,7 @@ export async function startHandler(ctx: Context) {
   }
 }
 
-async function showMainMenu(ctx: Context, user: any) {
+async function showMainMenu(ctx: Context, user: User) {
   const keyboard = {
     reply_markup: {
       inline_keyboard: [
@@ -85,28 +99,28 @@ async function showMainMenu(ctx: Context, user: any) {
   };
 
   await ctx.reply(
-    `Привет, ${user.firstName}! 👋\n\n` +
+    `Привет, ${user.displayName}! 👋\n\n` +
     'Добро пожаловать в Retasker Bot!\n\n' +
     'Выберите действие:',
     keyboard
   );
 }
 
-async function showDealInfo(ctx: Context, deal: any, userId: string) {
+export async function showDealInfo(ctx: Context, deal: Deal, userId: string) {
   const isCustomer = deal.customerId === userId;
   const isFreelancer = deal.freelancerId === userId;
   
   let roleText = '';
-  let actions = [];
+  let actions: Array<Array<{ text: string; callback_data: string }>> = [];
 
   if (isCustomer) {
     roleText = 'Вы - заказчик';
-    if (deal.status === 'delivered') {
+    if (deal.status === 'DELIVERED') {
       actions.push([{ text: '✅ Подтвердить завершение', callback_data: `confirm_${deal.id}` }]);
     }
   } else if (isFreelancer) {
     roleText = 'Вы - исполнитель';
-    if (deal.status === 'active') {
+    if (deal.status === 'ACTIVE') {
       actions.push([{ text: '📤 Отправить результат', callback_data: `deliver_${deal.id}` }]);
     }
   }
@@ -120,17 +134,18 @@ async function showDealInfo(ctx: Context, deal: any, userId: string) {
     }
   };
 
-  const statusText = {
-    'active': '🟢 Активна',
-    'delivered': '🟡 Доставлено',
-    'completed': '✅ Завершена',
-    'cancelled': '❌ Отменена'
-  }[deal.status] || '❓ Неизвестно';
+  const statusTexts = {
+    'ACTIVE': '🟢 Активна',
+    'DELIVERED': '🟡 Доставлено',
+    'COMPLETED': '✅ Завершена',
+    'CANCELLED': '❌ Отменена'
+  };
+  const statusText = statusTexts[deal.status as keyof typeof statusTexts] || '❓ Неизвестно';
 
   await ctx.reply(
     `📋 Информация о сделке\n\n` +
     `📝 Заказ: ${deal.order.title}\n` +
-    `💰 Сумма: $${(deal.finalPrice / 100).toFixed(2)}\n` +
+    `💰 Сумма: $${(deal.order.budgetCents / 100).toFixed(2)}\n` +
     `📊 Статус: ${statusText}\n` +
     `👤 ${roleText}\n\n` +
     `Выберите действие:`,

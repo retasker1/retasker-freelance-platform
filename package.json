@@ -17,15 +17,15 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
-    "turbo": "^1.10.12",
-    "prettier": "^3.0.0",
-    "eslint": "^8.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "husky": "^8.0.0",
     "@commitlint/cli": "^17.0.0",
     "@commitlint/config-conventional": "^17.0.0",
-    "lint-staged": "^14.0.0"
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^14.0.0",
+    "prettier": "^3.0.0",
+    "turbo": "^1.10.12"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -44,5 +44,9 @@
     "typescript"
   ],
   "author": "Retasker Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^6.15.0",
+    "prisma": "^6.15.0"
+  }
 }

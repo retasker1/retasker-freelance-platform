@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { z } from 'zod';
 
 // Схема валидации для редактирования заказа
@@ -8,9 +8,7 @@ const editOrderSchema = z.object({
   title: z.string().min(1, 'Название обязательно').max(100, 'Название слишком длинное'),
   description: z.string().min(10, 'Описание должно содержать минимум 10 символов').max(2000, 'Описание слишком длинное'),
   budgetCents: z.number().int().min(1000, 'Минимальный бюджет 10 рублей').max(10000000, 'Максимальный бюджет 100,000 рублей'),
-  category: z.string().min(1, 'Выберите категорию'),
-  deadline: z.string().min(1, 'Укажите срок выполнения'),
-  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']),
+  status: z.enum(['OPEN', 'IN_DEAL', 'CLOSED']),
 });
 
 type EditOrderData = z.infer<typeof editOrderSchema>;
@@ -20,8 +18,6 @@ interface Order {
   title: string;
   description: string;
   budgetCents: number;
-  category: string;
-  deadline: string;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -34,21 +30,12 @@ interface EditOrderFormProps {
   isLoading?: boolean;
 }
 
-const categories = [
-  { value: 'web-development', label: 'Веб-разработка' },
-  { value: 'mobile-development', label: 'Мобильная разработка' },
-  { value: 'design', label: 'Дизайн' },
-  { value: 'writing', label: 'Копирайтинг' },
-  { value: 'translation', label: 'Переводы' },
-  { value: 'marketing', label: 'Маркетинг' },
-  { value: 'other', label: 'Другое' },
-];
+
 
 const statusOptions = [
-  { value: 'open', label: 'Открыт' },
-  { value: 'in_progress', label: 'В работе' },
-  { value: 'completed', label: 'Завершен' },
-  { value: 'cancelled', label: 'Отменен' },
+  { value: 'OPEN', label: 'Открыт' },
+  { value: 'IN_DEAL', label: 'В сделке' },
+  { value: 'CLOSED', label: 'Закрыт' },
 ];
 
 export default function EditOrderForm({ order, onSubmit, onCancel, isLoading = false }: EditOrderFormProps) {
@@ -56,9 +43,7 @@ export default function EditOrderForm({ order, onSubmit, onCancel, isLoading = f
     title: order.title,
     description: order.description,
     budgetCents: order.budgetCents,
-    category: order.category,
-    deadline: order.deadline,
-    status: order.status as 'open' | 'in_progress' | 'completed' | 'cancelled',
+    status: order.status as 'OPEN' | 'IN_DEAL' | 'CLOSED',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof EditOrderData, string>>>({});
 
@@ -167,30 +152,7 @@ export default function EditOrderForm({ order, onSubmit, onCancel, isLoading = f
             )}
           </div>
 
-          {/* Категория */}
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-              Категория *
-            </label>
-            <select
-              id="category"
-              value={formData.category}
-              onChange={(e) => handleInputChange('category', e.target.value)}
-              className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.category ? 'border-red-500' : 'border-slate-600'
-              }`}
-            >
-              <option value="">Выберите категорию</option>
-              {categories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-            {errors.category && (
-              <p className="mt-1 text-sm text-red-400">{errors.category}</p>
-            )}
-          </div>
+
 
           {/* Статус */}
           <div>
@@ -217,25 +179,7 @@ export default function EditOrderForm({ order, onSubmit, onCancel, isLoading = f
           </div>
         </div>
 
-        {/* Срок выполнения */}
-        <div>
-          <label htmlFor="deadline" className="block text-sm font-medium text-gray-300 mb-2">
-            Срок выполнения *
-          </label>
-          <input
-            type="date"
-            id="deadline"
-            value={formData.deadline}
-            onChange={(e) => handleInputChange('deadline', e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-            className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.deadline ? 'border-red-500' : 'border-slate-600'
-            }`}
-          />
-          {errors.deadline && (
-            <p className="mt-1 text-sm text-red-400">{errors.deadline}</p>
-          )}
-        </div>
+
 
         {/* Информация о заказе */}
         <div className="bg-slate-700 rounded-lg p-4">

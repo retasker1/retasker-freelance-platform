@@ -7,6 +7,7 @@ import { chatHandler } from './handlers/chat';
 import { deliverHandler } from './handlers/deliver';
 import { confirmHandler } from './handlers/confirm';
 import { complaintHandler } from './handlers/complaint';
+import { BotContext } from './types';
 
 // Загружаем переменные окружения
 config();
@@ -20,13 +21,6 @@ console.log('===================');
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN!);
 const apiService = new ApiService(process.env.APP_API_BASE || 'http://localhost:3000');
-
-// Расширяем контекст бота
-interface BotContext extends Context {
-  apiService: ApiService;
-  userId?: string;
-  dealId?: string;
-}
 
 // Добавляем сервис API в контекст
 bot.use((ctx, next) => {
@@ -44,7 +38,7 @@ bot.command('complaint', complaintHandler);
 
 // Обработчик callback-кнопок
 bot.on('callback_query', async (ctx) => {
-  const data = ctx.callbackQuery?.data;
+  const data = (ctx.callbackQuery as any)?.data;
   if (!data) return;
 
   try {
@@ -54,7 +48,7 @@ bot.on('callback_query', async (ctx) => {
     const botCtx = ctx as BotContext;
     if (!botCtx.userId) {
       const telegramId = ctx.from?.id.toString();
-      if (telegramId) {
+      if (telegramId && botCtx.apiService) {
         const user = await botCtx.apiService.getUserByTelegramId(telegramId);
         if (user) {
           botCtx.userId = user.id;
@@ -81,9 +75,12 @@ bot.on('callback_query', async (ctx) => {
       );
     } else if (data.startsWith('deal_')) {
       const dealId = data.replace('deal_', '');
-      const deal = await (ctx as BotContext).apiService.getDeal(dealId, (ctx as BotContext).userId!);
-      if (deal) {
-        await showDealInfo(ctx, deal, (ctx as BotContext).userId!);
+      const botCtx = ctx as BotContext;
+      if (botCtx.apiService) {
+        const deal = await botCtx.apiService.getDeal(dealId);
+        if (deal && botCtx.userId) {
+          await showDealInfo(ctx, deal, botCtx.userId);
+        }
       }
     } else if (data.startsWith('chat_')) {
       const dealId = data.replace('chat_', '');
@@ -143,7 +140,7 @@ bot.on('text', async (ctx) => {
   }
   
   // Если ожидается описание жалобы
-  if (botCtx.dealId && (botCtx as any).complaintReason) {
+  if (botCtx.dealId && botCtx.complaintReason) {
     const { submitComplaint } = await import('./handlers/complaint');
     await submitComplaint(ctx, ctx.message.text);
     return;

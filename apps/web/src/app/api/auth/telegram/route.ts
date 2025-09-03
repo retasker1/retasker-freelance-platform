@@ -1,83 +1,99 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-}
-
-// В реальном приложении это должно быть в переменных окружения
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'your_bot_token_here';
-
-function verifyTelegramAuth(user: TelegramUser): boolean {
-  // В режиме разработки пропускаем проверку для тестовых данных
-  if (process.env.NODE_ENV === 'development' && user.hash === 'test_hash') {
-    return true;
+// Функция для проверки подписи Telegram
+function verifyTelegramAuth(authData: any): boolean {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (!botToken) {
+    console.error('TELEGRAM_BOT_TOKEN не найден в переменных окружения');
+    return false;
   }
 
-  const { hash, ...userData } = user;
+  // Создаем секретный ключ из токена бота
+  const secretKey = crypto.createHash('sha256').update(botToken).digest();
+  
+  // Извлекаем hash из данных
+  const { hash, ...data } = authData;
   
   // Создаем строку для проверки
-  const dataCheckString = Object.keys(userData)
+  const dataCheckString = Object.keys(data)
     .sort()
-    .map(key => `${key}=${userData[key as keyof typeof userData]}`)
+    .map(key => `${key}=${data[key]}`)
     .join('\n');
-
-  // Создаем секретный ключ
-  const secretKey = crypto
-    .createHash('sha256')
-    .update(BOT_TOKEN)
-    .digest();
-
-  // Вычисляем HMAC
-  const hmac = crypto
-    .createHmac('sha256', secretKey)
-    .update(dataCheckString)
-    .digest('hex');
-
+  
+  // Создаем HMAC
+  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  
+  // Сравниваем хеши
   return hmac === hash;
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user: TelegramUser = await request.json();
-
-    // Проверяем подлинность данных от Telegram
-    if (!verifyTelegramAuth(user)) {
+    const authData = await request.json();
+    
+    // Проверяем подпись Telegram
+    if (!verifyTelegramAuth(authData)) {
       return NextResponse.json(
         { error: 'Неверная подпись Telegram' },
         { status: 401 }
       );
     }
 
-    // Проверяем, что данные не устарели (не более 24 часов)
-    const currentTime = Math.floor(Date.now() / 1000);
-    if (currentTime - user.auth_date > 86400) {
+    // Проверяем, что данные не устарели (не старше 24 часов)
+    const authDate = new Date(authData.auth_date * 1000);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - authDate.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursDiff > 24) {
       return NextResponse.json(
-        { error: 'Данные авторизации устарели' },
+        { error: 'Данные аутентификации устарели' },
         { status: 401 }
       );
     }
 
-    // Здесь можно сохранить пользователя в базу данных
-    // Пока просто возвращаем данные пользователя
-    const userResponse = {
-      id: user.id,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      username: user.username,
-      photo_url: user.photo_url,
-      isAuthenticated: true,
-    };
+    // Ищем пользователя в базе данных
+    let user = await prisma.user.findUnique({
+      where: { tgId: authData.id.toString() }
+    });
 
-    return NextResponse.json(userResponse);
+    // Если пользователь не найден, создаем нового
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          tgId: authData.id.toString(),
+          displayName: authData.first_name + (authData.last_name ? ` ${authData.last_name}` : ''),
+          username: authData.username || null,
+          isActive: true,
+        }
+      });
+    } else {
+      // Обновляем данные существующего пользователя
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          displayName: authData.first_name + (authData.last_name ? ` ${authData.last_name}` : ''),
+          username: authData.username || null,
+          isActive: true,
+        }
+      });
+    }
+
+    // Возвращаем данные пользователя
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        tgId: user.tgId,
+        displayName: user.displayName,
+        username: user.username,
+        isActive: user.isActive,
+      }
+    });
+
   } catch (error) {
-    console.error('Ошибка при обработке Telegram авторизации:', error);
+    console.error('Ошибка аутентификации Telegram:', error);
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },
       { status: 500 }

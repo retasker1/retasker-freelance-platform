@@ -1,9 +1,9 @@
 import { Context } from 'telegraf';
-import { BotContext } from '../types';
+import { BotContext, Deal } from '../types';
 
 export async function deliverHandler(ctx: Context) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -12,8 +12,8 @@ export async function deliverHandler(ctx: Context) {
     }
 
     // Получаем активные сделки пользователя как исполнителя
-    const deals = await apiService.getUserDeals(botCtx.userId, 'active');
-    const freelancerDeals = deals.filter(deal => deal.freelancerId === botCtx.userId);
+    const deals = await apiService.getUserDeals(botCtx.userId);
+    const freelancerDeals = deals.filter((deal: Deal) => deal.freelancerId === botCtx.userId && deal.status === 'ACTIVE');
     
     if (freelancerDeals.length === 0) {
       await ctx.reply(
@@ -26,9 +26,9 @@ export async function deliverHandler(ctx: Context) {
     // Создаем клавиатуру с кнопками для каждой сделки
     const keyboard = {
       reply_markup: {
-        inline_keyboard: freelancerDeals.map(deal => [
+        inline_keyboard: freelancerDeals.map((deal: Deal) => [
           {
-            text: `${deal.order.title} - $${(deal.finalPrice / 100).toFixed(2)}`,
+            text: `${deal.order.title} - $${(deal.order.budgetCents / 100).toFixed(2)}`,
             callback_data: `deliver_${deal.id}`
           }
         ])
@@ -48,7 +48,7 @@ export async function deliverHandler(ctx: Context) {
 
 export async function confirmDeliver(ctx: Context, dealId: string) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -57,7 +57,7 @@ export async function confirmDeliver(ctx: Context, dealId: string) {
     }
 
     // Получаем информацию о сделке
-    const deal = await apiService.getDeal(dealId, botCtx.userId);
+    const deal = await apiService.getDeal(dealId);
     if (!deal) {
       await ctx.reply('Сделка не найдена или у вас нет доступа к ней.');
       return;
@@ -70,7 +70,7 @@ export async function confirmDeliver(ctx: Context, dealId: string) {
     }
 
     // Проверяем статус сделки
-    if (deal.status !== 'active') {
+    if (deal.status !== 'ACTIVE') {
       await ctx.reply('Сделка не активна. Результат можно отправить только для активных сделок.');
       return;
     }
@@ -89,7 +89,7 @@ export async function confirmDeliver(ctx: Context, dealId: string) {
     await ctx.reply(
       `📤 Подтверждение отправки результата\n\n` +
       `Сделка: ${deal.order.title}\n` +
-      `Сумма: $${(deal.finalPrice / 100).toFixed(2)}\n\n` +
+      `Сумма: $${(deal.order.budgetCents / 100).toFixed(2)}\n\n` +
       `Вы уверены, что хотите отправить результат? После отправки заказчик сможет его проверить и подтвердить завершение.`,
       keyboard
     );
@@ -102,7 +102,7 @@ export async function confirmDeliver(ctx: Context, dealId: string) {
 
 export async function executeDeliver(ctx: Context, dealId: string) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -111,7 +111,7 @@ export async function executeDeliver(ctx: Context, dealId: string) {
     }
 
     // Отправляем результат
-    const success = await apiService.deliverResult(dealId, botCtx.userId);
+    const success = await apiService.deliverDeal(dealId, botCtx.userId);
     
     if (success) {
       await ctx.reply(

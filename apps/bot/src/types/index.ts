@@ -1,11 +1,9 @@
 export interface Deal {
   id: string;
   orderId: string;
-  responseId: string;
   customerId: string;
   freelancerId: string;
-  finalPrice: number;
-  status: 'active' | 'delivered' | 'completed' | 'cancelled';
+  status: 'ACTIVE' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
   createdAt: string;
   updatedAt: string;
   order: {
@@ -13,45 +11,53 @@ export interface Deal {
     title: string;
     description: string;
     budgetCents: number;
-    category: string;
-    deadline: string;
     status: string;
-  };
-  response: {
-    id: string;
-    message: string;
-    proposedPrice: number;
   };
   customer: {
     id: string;
-    firstName: string;
-    lastName: string;
-    telegramId: string;
+    displayName: string;
+    tgId: string;
   };
   freelancer: {
     id: string;
-    firstName: string;
-    lastName: string;
-    telegramId: string;
+    displayName: string;
+    tgId: string;
   };
 }
 
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
-  telegramId: string;
+  displayName: string;
+  tgId: string;
+  rating: number;
+  ratingsCount: number;
+  balanceCents: number;
+  isAdmin: boolean;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface Message {
   id: string;
   dealId: string;
   senderId: string;
-  content: string;
-  isFromCustomer: boolean;
+  type: string;
+  payload: string;
   createdAt: string;
+  sender: {
+    id: string;
+    displayName: string;
+  };
+}
+
+export interface ApiService {
+  getUserByTelegramId: (telegramId: string) => Promise<User | null>;
+  getUserDeals: (userId: string) => Promise<Deal[]>;
+  getDeal: (dealId: string) => Promise<Deal | null>;
+  createMessage: (dealId: string, senderId: string, content: string, isFromCustomer: boolean) => Promise<Message | null>;
+  getMessages: (dealId: string) => Promise<Message[]>;
+  deliverDeal: (dealId: string, freelancerId: string) => Promise<boolean>;
+  confirmDeal: (dealId: string, customerId: string) => Promise<boolean>;
+  createComplaint: (dealId: string, customerId: string, reason: string) => Promise<boolean>;
 }
 
 export interface BotContext {
@@ -61,6 +67,7 @@ export interface BotContext {
   isFreelancer?: boolean;
   waitingForMessage?: boolean;
   complaintReason?: string;
+  apiService?: ApiService;
 }
 
 export interface ApiResponse<T = any> {

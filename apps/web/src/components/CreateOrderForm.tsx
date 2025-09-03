@@ -8,8 +8,6 @@ const createOrderSchema = z.object({
   title: z.string().min(1, 'Название обязательно').max(100, 'Название слишком длинное'),
   description: z.string().min(10, 'Описание должно содержать минимум 10 символов').max(2000, 'Описание слишком длинное'),
   budgetCents: z.number().int().min(1000, 'Минимальный бюджет 10 рублей').max(10000000, 'Максимальный бюджет 100,000 рублей'),
-  category: z.string().min(1, 'Выберите категорию'),
-  deadline: z.string().min(1, 'Укажите срок выполнения'),
 });
 
 type CreateOrderData = z.infer<typeof createOrderSchema>;
@@ -20,23 +18,13 @@ interface CreateOrderFormProps {
   isLoading?: boolean;
 }
 
-const categories = [
-  { value: 'web-development', label: 'Веб-разработка' },
-  { value: 'mobile-development', label: 'Мобильная разработка' },
-  { value: 'design', label: 'Дизайн' },
-  { value: 'writing', label: 'Копирайтинг' },
-  { value: 'translation', label: 'Переводы' },
-  { value: 'marketing', label: 'Маркетинг' },
-  { value: 'other', label: 'Другое' },
-];
+
 
 export default function CreateOrderForm({ onSubmit, onCancel, isLoading = false }: CreateOrderFormProps) {
   const [formData, setFormData] = useState<CreateOrderData>({
     title: '',
     description: '',
     budgetCents: 0,
-    category: '',
-    deadline: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof CreateOrderData, string>>>({});
 
@@ -68,13 +56,13 @@ export default function CreateOrderForm({ onSubmit, onCancel, isLoading = false 
     }
   };
 
-  const formatBudget = (cents: number) => {
-    return (cents / 100).toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    });
-  };
+  // const formatBudget = (cents: number) => {
+  //   return (cents / 100).toLocaleString('en-US', {
+  //     style: 'currency',
+  //     currency: 'USD',
+  //     minimumFractionDigits: 0,
+  //   });
+  // };
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 max-w-2xl mx-auto">
@@ -153,51 +141,10 @@ export default function CreateOrderForm({ onSubmit, onCancel, isLoading = false 
             )}
           </div>
 
-          {/* Категория */}
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-300 mb-2">
-              Категория *
-            </label>
-            <select
-              id="category"
-              value={formData.category}
-              onChange={(e) => handleInputChange('category', e.target.value)}
-              className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.category ? 'border-red-500' : 'border-slate-600'
-              }`}
-            >
-              <option value="">Выберите категорию</option>
-              {categories.map(category => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-            {errors.category && (
-              <p className="mt-1 text-sm text-red-400">{errors.category}</p>
-            )}
-          </div>
+
         </div>
 
-        {/* Срок выполнения */}
-        <div>
-          <label htmlFor="deadline" className="block text-sm font-medium text-gray-300 mb-2">
-            Срок выполнения *
-          </label>
-          <input
-            type="date"
-            id="deadline"
-            value={formData.deadline}
-            onChange={(e) => handleInputChange('deadline', e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-            className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.deadline ? 'border-red-500' : 'border-slate-600'
-            }`}
-          />
-          {errors.deadline && (
-            <p className="mt-1 text-sm text-red-400">{errors.deadline}</p>
-          )}
-        </div>
+
 
         {/* Кнопки */}
         <div className="flex gap-4 pt-4">

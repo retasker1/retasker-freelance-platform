@@ -45,32 +45,23 @@ export async function GET(request: NextRequest) {
             title: true,
             description: true,
             budgetCents: true,
-            category: true,
-            deadline: true,
+
             status: true,
           }
         },
-        response: {
-          select: {
-            id: true,
-            message: true,
-            proposedPrice: true,
-          }
-        },
+
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         },
         freelancer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         }
       },
@@ -123,10 +114,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверяем, что сделка еще не создана
-    const existingDeal = await prisma.deal.findFirst({
+    const existingDeal = await prisma.deal.findUnique({
       where: {
-        orderId: validatedData.orderId,
-        responseId: validatedData.responseId
+        orderId: validatedData.orderId
       }
     });
 
@@ -141,11 +131,9 @@ export async function POST(request: NextRequest) {
     const deal = await prisma.deal.create({
       data: {
         orderId: validatedData.orderId,
-        responseId: validatedData.responseId,
         customerId: order.customerId,
         freelancerId: response.freelancerId,
-        finalPrice: validatedData.finalPrice,
-        status: 'active',
+        status: 'ACTIVE',
       },
       include: {
         order: {
@@ -154,32 +142,23 @@ export async function POST(request: NextRequest) {
             title: true,
             description: true,
             budgetCents: true,
-            category: true,
-            deadline: true,
+
             status: true,
           }
         },
-        response: {
-          select: {
-            id: true,
-            message: true,
-            proposedPrice: true,
-          }
-        },
+
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         },
         freelancer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         }
       }
@@ -191,11 +170,7 @@ export async function POST(request: NextRequest) {
       data: { status: 'in_progress' }
     });
 
-    // Обновляем статус отклика на "принят"
-    await prisma.response.update({
-      where: { id: validatedData.responseId },
-      data: { status: 'accepted' }
-    });
+    // Отклик принят (статус не хранится в Response)
 
     return NextResponse.json({
       ok: true,

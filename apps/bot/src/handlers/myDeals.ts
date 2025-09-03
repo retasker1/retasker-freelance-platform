@@ -1,9 +1,9 @@
 import { Context } from 'telegraf';
-import { BotContext } from '../types';
+import { BotContext, Deal } from '../types';
 
 export async function myDealsHandler(ctx: Context) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -23,9 +23,9 @@ export async function myDealsHandler(ctx: Context) {
     }
 
     // Группируем сделки по статусу
-    const activeDeals = deals.filter(d => d.status === 'active');
-    const deliveredDeals = deals.filter(d => d.status === 'delivered');
-    const completedDeals = deals.filter(d => d.status === 'completed');
+    const activeDeals = deals.filter((d: Deal) => d.status === 'ACTIVE');
+    const deliveredDeals = deals.filter((d: Deal) => d.status === 'DELIVERED');
+    const completedDeals = deals.filter((d: Deal) => d.status === 'COMPLETED');
 
     let message = '📋 Ваши сделки:\n\n';
 
@@ -34,7 +34,7 @@ export async function myDealsHandler(ctx: Context) {
       for (const deal of activeDeals) {
         const isCustomer = deal.customerId === botCtx.userId;
         const role = isCustomer ? 'Заказчик' : 'Исполнитель';
-        message += `• ${deal.order.title} (${role}) - $${(deal.finalPrice / 100).toFixed(2)}\n`;
+        message += `• ${deal.order.title} (${role}) - $${(deal.order.budgetCents / 100).toFixed(2)}\n`;
       }
       message += '\n';
     }
@@ -44,7 +44,7 @@ export async function myDealsHandler(ctx: Context) {
       for (const deal of deliveredDeals) {
         const isCustomer = deal.customerId === botCtx.userId;
         const role = isCustomer ? 'Заказчик' : 'Исполнитель';
-        message += `• ${deal.order.title} (${role}) - $${(deal.finalPrice / 100).toFixed(2)}\n`;
+        message += `• ${deal.order.title} (${role}) - $${(deal.order.budgetCents / 100).toFixed(2)}\n`;
       }
       message += '\n';
     }
@@ -54,7 +54,7 @@ export async function myDealsHandler(ctx: Context) {
       for (const deal of completedDeals) {
         const isCustomer = deal.customerId === botCtx.userId;
         const role = isCustomer ? 'Заказчик' : 'Исполнитель';
-        message += `• ${deal.order.title} (${role}) - $${(deal.finalPrice / 100).toFixed(2)}\n`;
+        message += `• ${deal.order.title} (${role}) - $${(deal.order.budgetCents / 100).toFixed(2)}\n`;
       }
     }
 
@@ -62,10 +62,10 @@ export async function myDealsHandler(ctx: Context) {
     const keyboard = {
       reply_markup: {
         inline_keyboard: deals
-          .filter(d => d.status === 'active' || d.status === 'delivered')
-          .map(deal => [
+          .filter((d: Deal) => d.status === 'ACTIVE' || d.status === 'DELIVERED')
+          .map((deal: Deal) => [
             {
-              text: `${deal.order.title} - $${(deal.finalPrice / 100).toFixed(2)}`,
+              text: `${deal.order.title} - $${(deal.order.budgetCents / 100).toFixed(2)}`,
               callback_data: `deal_${deal.id}`
             }
           ])

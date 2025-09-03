@@ -55,8 +55,7 @@ export async function GET(
         sender: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            displayName: true,
           }
         }
       }
@@ -119,15 +118,14 @@ export async function POST(
       data: {
         dealId: params.id,
         senderId: validatedData.senderId,
-        content: validatedData.content,
-        isFromCustomer: validatedData.isFromCustomer,
+        type: 'text',
+        payload: JSON.stringify({ content: validatedData.content, isFromCustomer: validatedData.isFromCustomer }),
       },
       include: {
         sender: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            displayName: true,
           }
         }
       }

@@ -21,32 +21,23 @@ export async function GET(
             title: true,
             description: true,
             budgetCents: true,
-            category: true,
-            deadline: true,
+
             status: true,
           }
         },
-        response: {
-          select: {
-            id: true,
-            message: true,
-            proposedPrice: true,
-          }
-        },
+
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         },
         freelancer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         }
       }
@@ -117,32 +108,23 @@ export async function PUT(
             title: true,
             description: true,
             budgetCents: true,
-            category: true,
-            deadline: true,
+
             status: true,
           }
         },
-        response: {
-          select: {
-            id: true,
-            message: true,
-            proposedPrice: true,
-          }
-        },
+
         customer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         },
         freelancer: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         }
       }

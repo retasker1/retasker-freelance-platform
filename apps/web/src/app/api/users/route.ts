@@ -10,10 +10,14 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const role = searchParams.get('role') // customer, freelancer, admin
+    const telegramId = searchParams.get('telegramId') // для поиска по Telegram ID
 
     const where: any = {}
     if (role) {
       // Логика фильтрации по роли будет добавлена позже
+    }
+    if (telegramId) {
+      where.tgId = telegramId
     }
 
     const [users, total] = await Promise.all([

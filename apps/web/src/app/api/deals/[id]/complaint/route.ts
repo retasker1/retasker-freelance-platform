@@ -49,7 +49,7 @@ export async function POST(
     const existingComplaint = await prisma.complaint.findFirst({
       where: {
         dealId: params.id,
-        complainantId: validatedData.userId
+        authorId: validatedData.userId
       }
     });
 
@@ -64,25 +64,22 @@ export async function POST(
     const complaint = await prisma.complaint.create({
       data: {
         dealId: params.id,
-        complainantId: validatedData.userId,
-        reason: validatedData.reason,
-        description: validatedData.description,
-        status: 'pending',
+        authorId: validatedData.userId,
+        text: validatedData.description,
+        status: 'OPEN',
       },
       include: {
-        complainant: {
+        author: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            telegramId: true,
+            displayName: true,
+            tgId: true,
           }
         },
         deal: {
           select: {
             id: true,
             status: true,
-            finalPrice: true,
             order: {
               select: {
                 id: true,

@@ -1,9 +1,9 @@
 import { Context } from 'telegraf';
-import { BotContext } from '../types';
+import { BotContext, Deal } from '../types';
 
 export async function complaintHandler(ctx: Context) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -25,9 +25,9 @@ export async function complaintHandler(ctx: Context) {
     // Создаем клавиатуру с кнопками для каждой сделки
     const keyboard = {
       reply_markup: {
-        inline_keyboard: deals.map(deal => [
+        inline_keyboard: deals.map((deal: Deal) => [
           {
-            text: `${deal.order.title} - $${(deal.finalPrice / 100).toFixed(2)}`,
+            text: `${deal.order.title} - $${(deal.order.budgetCents / 100).toFixed(2)}`,
             callback_data: `complaint_${deal.id}`
           }
         ])
@@ -47,7 +47,7 @@ export async function complaintHandler(ctx: Context) {
 
 export async function startComplaint(ctx: Context, dealId: string) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId) {
@@ -56,7 +56,7 @@ export async function startComplaint(ctx: Context, dealId: string) {
     }
 
     // Получаем информацию о сделке
-    const deal = await apiService.getDeal(dealId, botCtx.userId);
+    const deal = await apiService.getDeal(dealId);
     if (!deal) {
       await ctx.reply('Сделка не найдена или у вас нет доступа к ней.');
       return;
@@ -87,7 +87,7 @@ export async function startComplaint(ctx: Context, dealId: string) {
     await ctx.reply(
       `⚠️ Подача жалобы\n\n` +
       `Сделка: ${deal.order.title}\n` +
-      `Сумма: $${(deal.finalPrice / 100).toFixed(2)}\n` +
+      `Сумма: $${(deal.order.budgetCents / 100).toFixed(2)}\n` +
       `Статус: ${deal.status}\n\n` +
       `Выберите причину жалобы:`,
       keyboard
@@ -109,7 +109,7 @@ export async function handleComplaintReason(ctx: Context, reason: string) {
     }
 
     // Сохраняем причину жалобы в контексте
-    (botCtx as any).complaintReason = reason;
+    botCtx.complaintReason = reason;
 
     const reasonTexts = {
       'quality': 'Некачественная работа',
@@ -135,7 +135,7 @@ export async function handleComplaintReason(ctx: Context, reason: string) {
 
 export async function submitComplaint(ctx: Context, description: string) {
   const botCtx = ctx as BotContext;
-  const apiService = botCtx.apiService;
+  const apiService = botCtx.apiService!;
   
   try {
     if (!botCtx.userId || !botCtx.dealId) {
@@ -143,18 +143,17 @@ export async function submitComplaint(ctx: Context, description: string) {
       return;
     }
 
-    const reason = (botCtx as any).complaintReason;
+    const reason = botCtx.complaintReason;
     if (!reason) {
       await ctx.reply('Ошибка: не выбрана причина жалобы.');
       return;
     }
 
     // Отправляем жалобу
-    const success = await apiService.submitComplaint(
+    const success = await apiService.createComplaint(
       botCtx.dealId, 
       botCtx.userId, 
-      reason, 
-      description
+      reason
     );
     
     if (success) {
@@ -165,7 +164,7 @@ export async function submitComplaint(ctx: Context, description: string) {
       );
       
       // Очищаем контекст
-      delete (botCtx as any).complaintReason;
+      botCtx.complaintReason = undefined;
       botCtx.dealId = undefined;
     } else {
       await ctx.reply('❌ Ошибка при подаче жалобы. Попробуйте позже.');

@@ -101,15 +101,48 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
+    // Получаем данные пользователя из заголовков (если аутентифицирован)
+    const telegramUserHeader = request.headers.get('x-telegram-user')
+    let customerId: string | null = null
+    
+    if (telegramUserHeader) {
+      try {
+        const telegramUser = JSON.parse(telegramUserHeader)
+        // Ищем пользователя по Telegram ID
+        const user = await prisma.user.findUnique({
+          where: { tgId: telegramUser.id.toString() }
+        })
+        if (user) {
+          customerId = user.id
+        }
+      } catch (error) {
+        console.error('Ошибка парсинга данных Telegram пользователя:', error)
+      }
+    }
+    
+    // Если пользователь не аутентифицирован, используем временного пользователя
+    if (!customerId) {
+      const existingUser = await prisma.user.findFirst()
+      if (!existingUser) {
+        return NextResponse.json(
+          { error: 'Нет пользователей в системе' },
+          { status: 400 }
+        )
+      }
+      customerId = existingUser.id
+    }
+    
     // Валидация данных
-    const validatedData = createOrderSchema.parse(body)
+    const validatedData = createOrderSchema.parse({
+      title: body.title,
+      description: body.description,
+      budgetCents: body.budgetCents,
+      customerId: customerId
+    })
     
     // Создание заказа
     const order = await prisma.order.create({
-      data: {
-        ...validatedData,
-        customerId: validatedData.customerId
-      },
+      data: validatedData,
       include: {
         customer: {
           select: {
@@ -123,13 +156,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(order, { status: 201 })
   } catch (error) {
-    if (error instanceof Error && error.message.includes('validation')) {
-      return NextResponse.json(
-        { error: 'Неверные данные заказа' },
-        { status: 400 }
-      )
-    }
-    
     console.error('Error creating order:', error)
     return NextResponse.json(
       { error: 'Ошибка при создании заказа' },
