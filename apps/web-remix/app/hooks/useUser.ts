@@ -7,6 +7,8 @@ interface User {
   username?: string;
   photoUrl?: string;
   isActive: boolean;
+  createdAt?: string;
+  telegramId?: string;
 }
 
 // Интерфейс для Telegram Web App
@@ -173,5 +175,10 @@ export function useUser() {
     localStorage.removeItem("retasker_user");
   };
 
-  return { user, loading, login, logout };
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem("retasker_user", JSON.stringify(updatedUser));
+  };
+
+  return { user, loading, login, logout, updateUser };
 }
