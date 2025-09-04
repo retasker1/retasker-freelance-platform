@@ -22,6 +22,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Поля для авторизации
+  authToken     String?
+  tokenExpiresAt DateTime?
+
   // Связи
   orders     Order[]     @relation("OrderCustomer")
   deals      Deal[]      @relation("DealCustomer")

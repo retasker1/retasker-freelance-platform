@@ -1,6 +1,6 @@
-import { useLoaderData, Link, redirect } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/orders";
-import { requireAuth } from "../lib/auth.server";
+import { useUser } from "../hooks/useUser";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -10,24 +10,27 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Проверяем аутентификацию
-  const { user } = await requireAuth(request);
-  
   const url = new URL(request.url);
   const status = url.searchParams.get("status") || "";
   const search = url.searchParams.get("search") || "";
 
-  const response = await fetch(`/api/orders?${new URLSearchParams({ status, search })}`);
+  // Используем полный URL для fetch
+  const apiUrl = new URL("/api/orders", url.origin);
+  apiUrl.searchParams.set("status", status);
+  apiUrl.searchParams.set("search", search);
+
+  const response = await fetch(apiUrl.toString());
   if (!response.ok) {
     throw new Response("Failed to load orders", { status: response.status });
   }
   
   const data = await response.json();
-  return { ...data, user };
+  return { ...data, user: { firstName: "Пользователь" } };
 }
 
 export default function OrdersPage() {
-  const { orders, user } = useLoaderData<typeof loader>();
+  const { orders } = useLoaderData<typeof loader>();
+  const { user } = useUser();
 
   return (
     <div className="px-4 py-6 sm:px-0">
@@ -37,9 +40,11 @@ export default function OrdersPage() {
             <h1 className="text-3xl font-bold text-gray-900">
               Заказы
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Добро пожаловать, {user.firstName}!
-            </p>
+            {user && (
+              <p className="text-sm text-gray-600 mt-1">
+                Добро пожаловать, {user.firstName}!
+              </p>
+            )}
           </div>
           <Link
             to="/orders/new"

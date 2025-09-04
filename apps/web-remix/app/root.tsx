@@ -1,7 +1,6 @@
 import {
   isRouteErrorResponse,
   Links,
-  Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
@@ -9,6 +8,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { AuthHeader } from "./components/AuthHeader";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -23,54 +23,38 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
+        <title>Retasker - Управление задачами</title>
+        <meta name="description" content="Retasker - система управления задачами и заказами" />
         <Links />
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
       </head>
       <body>
         <div className="min-h-screen bg-gray-50">
-          <header className="bg-white shadow-sm border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                <div className="flex items-center">
-                  <a href="/" className="text-xl font-bold text-gray-900">
-                    Retasker
-                  </a>
-                </div>
-                <nav className="flex space-x-8">
-                  <a 
-                    href="/" 
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Главная
-                  </a>
-                  <a 
-                    href="/orders" 
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Заказы
-                  </a>
-                  <a 
-                    href="/me" 
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Личный кабинет
-                  </a>
-                </nav>
-              </div>
-            </div>
-          </header>
+          <AuthHeader />
           <main>
             {children}
           </main>
         </div>
         <ScrollRestoration />
         <Scripts />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Инициализация Telegram Web App только на клиенте
+              if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

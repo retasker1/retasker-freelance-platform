@@ -5,4 +5,15 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
+  server: {
+    host: true, // Разрешить доступ с внешних IP
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'famous-taxes-send.loca.lt',
+      '.loca.lt', // Разрешить все поддомены loca.lt
+      '3dfu5ii9t8is.share.zrok.io', // zrok домен
+      '.share.zrok.io' // Разрешить все поддомены zrok
+    ]
+  }
 });

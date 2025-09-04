@@ -1,6 +1,6 @@
 import { Form, useActionData, useNavigation, redirect } from "react-router";
 import type { Route } from "./+types/orders.new";
-import { requireAuth } from "../lib/auth.server";
+import { useUser } from "../hooks/useUser";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -10,14 +10,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Проверяем аутентификацию
-  const { user } = await requireAuth(request);
-  return { user };
+  return { user: { id: "temp-user", firstName: "Пользователь" } };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  // Проверяем аутентификацию
-  const { user } = await requireAuth(request);
+  // В реальном приложении здесь должна быть проверка авторизации
+  const user = { id: "temp-user", firstName: "Пользователь" };
   
   const formData = await request.formData();
   const title = formData.get("title") as string;
@@ -51,7 +49,10 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     // Создаем заказ через API
-    const response = await fetch("/api/orders", {
+    const url = new URL(request.url);
+    const apiUrl = new URL("/api/orders", url.origin);
+    
+    const response = await fetch(apiUrl.toString(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -85,6 +86,31 @@ export default function NewOrderPage() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const { user } = useUser();
+
+  if (!user) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white shadow rounded-lg p-6 text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Требуется авторизация
+            </h1>
+            <p className="text-gray-600 mb-6">
+              Для создания заказов необходимо войти через Telegram
+            </p>
+            <a
+              href="/login"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Войти через Telegram
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const categories = [
     { value: "web", label: "Веб-разработка" },
