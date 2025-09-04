@@ -58,10 +58,11 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (method === "PUT" && userId) {
       // Обновление профиля пользователя
-                   const body = await request.json();
-             const { firstName, lastName, photoUrl } = body;
+      const body = await request.json();
+      const { firstName, lastName, photoUrl } = body;
 
       console.log("Updating user with ID:", userId);
+      console.log("Received data:", { firstName, lastName, photoUrl });
       
       // Сначала пытаемся найти по ID, если не найден - ищем по Telegram ID
       let user = await prisma.user.findUnique({
@@ -85,15 +86,15 @@ export async function action({ request }: Route.ActionArgs) {
         return new Response("User not found", { status: 404 });
       }
 
-                   const updatedUser = await prisma.user.update({
-               where: { id: user.id },
-               data: {
-                 firstName: firstName || undefined,
-                 lastName: lastName || undefined,
-                 // username не обновляем - он остается из Telegram
-                 photoUrl: photoUrl || user.photoUrl, // Сохраняем оригинальную фотографию, если новая не указана
-                 updatedAt: new Date(),
-               },
+                         const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          firstName: firstName || undefined,
+          lastName: lastName !== undefined ? lastName : undefined, // Позволяем явно установить null
+          // username не обновляем - он остается из Telegram
+          photoUrl: photoUrl !== undefined ? photoUrl : user.photoUrl, // Сохраняем оригинальную фотографию, если новая не указана
+          updatedAt: new Date(),
+        },
         select: {
           id: true,
           telegramId: true,

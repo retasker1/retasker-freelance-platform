@@ -39,44 +39,67 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Проверяем, есть ли данные пользователя в localStorage
-    const savedUser = localStorage.getItem("retasker_user");
-    console.log("Checking localStorage for user:", savedUser);
+    let isMounted = true;
     
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        console.log("Parsed user data:", userData);
-        
-        // Проверяем, что ID в правильном формате (cuid)
-        if (userData.id && !userData.id.startsWith('user_')) {
-          console.log("Valid user found in localStorage, setting user");
-          setUser(userData);
-          setLoading(false);
-          return;
-        } else {
-          // Если ID в старом формате, очищаем localStorage
-          console.log("Old user ID format detected, clearing localStorage");
+    const initializeAuth = async () => {
+      // Проверяем, есть ли данные пользователя в localStorage
+      const savedUser = localStorage.getItem("retasker_user");
+      console.log("Checking localStorage for user:", savedUser);
+      
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          console.log("Parsed user data:", userData);
+          
+          // Проверяем, что ID в правильном формате (cuid)
+          if (userData.id && !userData.id.startsWith('user_')) {
+            console.log("Valid user found in localStorage, setting user");
+            if (isMounted) {
+              setUser(userData);
+              setLoading(false);
+            }
+            return;
+          } else {
+            // Если ID в старом формате, очищаем localStorage
+            console.log("Old user ID format detected, clearing localStorage");
+            localStorage.removeItem("retasker_user");
+          }
+        } catch (error) {
+          console.error("Error parsing saved user:", error);
           localStorage.removeItem("retasker_user");
         }
-      } catch (error) {
-        console.error("Error parsing saved user:", error);
-        localStorage.removeItem("retasker_user");
+      } else {
+        console.log("No user found in localStorage");
       }
-    } else {
-      console.log("No user found in localStorage");
-    }
 
-    // Пытаемся авторизоваться через Telegram Web App
-    checkTelegramAuth();
+      // Пытаемся авторизоваться через Telegram Web App
+      const telegramAuthSuccess = await checkTelegramAuth();
+      
+      // Если дошли сюда и компонент еще смонтирован, завершаем загрузку
+      if (isMounted) {
+        if (telegramAuthSuccess) {
+          console.log("Telegram auth successful, user should be set");
+        } else {
+          console.log("No Telegram auth, setting loading to false");
+        }
+        setLoading(false);
+      }
+    };
 
     // Таймаут на случай, если авторизация зависнет
     const timeout = setTimeout(() => {
       console.log("Auth timeout, setting loading to false");
-      setLoading(false);
-    }, 5000);
+      if (isMounted) {
+        setLoading(false);
+      }
+    }, 3000); // Уменьшили таймаут до 3 секунд
 
-    return () => clearTimeout(timeout);
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkTelegramAuth = async () => {
@@ -88,8 +111,7 @@ export function useUser() {
         const result = await loginWithTelegramData(telegramUser);
         if (result.success) {
           console.log("Telegram auth successful");
-          setLoading(false);
-          return;
+          return true; // Успешная авторизация
         } else {
           console.log("Telegram auth failed:", result.error);
         }
@@ -100,8 +122,7 @@ export function useUser() {
       console.error("Telegram auth check error:", error);
     }
     
-    console.log("Setting loading to false");
-    setLoading(false);
+    return false; // Неуспешная авторизация
   };
 
   const loginWithTelegramData = async (telegramUser: any) => {
