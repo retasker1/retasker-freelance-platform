@@ -1,6 +1,9 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/me";
 import { useUser } from "../hooks/useUser";
+import { ProfileEditForm } from "../components/ProfileEditForm";
+import { UserStats } from "../components/UserStats";
+import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -11,6 +14,7 @@ export function meta({}: Route.MetaArgs) {
 
 export default function ProfilePage() {
   const { user, logout } = useUser();
+  const [isEditing, setIsEditing] = useState(false);
 
   if (!user) {
     return (
@@ -66,32 +70,91 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Информация о профиле
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Имя</label>
-              <p className="mt-1 text-sm text-gray-900">
-                {user.firstName} {user.lastName || ""}
-              </p>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Информация о профиле
+            </h2>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Редактировать
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+                className="inline-flex items-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Очистить
+              </button>
             </div>
+          </div>
+          
+          <div className="flex items-center space-x-4 mb-6">
+                               {user.photoUrl && !user.photoUrl.includes('via.placeholder.com') && !user.photoUrl.includes('ui-avatars.com') ? (
+                     <img
+                       src={user.photoUrl}
+                       alt="Фото профиля"
+                       className="w-16 h-16 rounded-full object-cover"
+                       onError={(e) => {
+                         e.currentTarget.style.display = 'none';
+                         e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                       }}
+                     />
+                   ) : (
+              <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+              </div>
+            )}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Telegram</label>
-              <p className="mt-1 text-sm text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {user.firstName} {user.lastName || ""}
+              </h3>
+              <p className="text-gray-600">
                 {user.username ? `@${user.username}` : `ID: ${user.telegramId}`}
               </p>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                user.isActive 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {user.isActive ? "Активен" : "Неактивен"}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Дата регистрации</label>
+              <p className="mt-1 text-sm text-gray-900">
+                {new Date(user.createdAt || Date.now()).toLocaleDateString('ru-RU')}
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Статус</label>
-              <p className="mt-1 text-sm text-gray-900">
-                {user.isActive ? "Активен" : "Неактивен"}
+              <label className="block text-sm font-medium text-gray-700">Telegram ID</label>
+              <p className="mt-1 text-sm text-gray-900 font-mono">
+                {user.telegramId}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Статистика */}
+        <UserStats />
+
+        {/* Быстрые действия */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           <Link
             to="/orders"
             className="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow"
@@ -110,6 +173,11 @@ export default function ProfilePage() {
             <p className="text-gray-600">Активные и завершенные сделки</p>
           </Link>
         </div>
+
+        {/* Модальное окно редактирования */}
+        {isEditing && (
+          <ProfileEditForm onClose={() => setIsEditing(false)} />
+        )}
       </div>
     </div>
   );

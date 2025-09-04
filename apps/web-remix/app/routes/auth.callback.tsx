@@ -25,19 +25,33 @@ export default function AuthCallback() {
         const authData = JSON.parse(decodedData);
         
         if (authData.id && authData.first_name) {
-          // Создаем объект пользователя
-          const user = {
-            id: `user_${authData.id}`,
-            telegramId: authData.id.toString(),
-            firstName: authData.first_name,
-            lastName: authData.last_name || null,
-            username: authData.username || null,
-            photoUrl: authData.photo_url || null,
-            isActive: true,
-          };
+          // Используем Telegram OAuth API для получения правильного пользователя
+          const response = await fetch("/api/auth/telegram_web", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              telegramId: authData.id.toString(),
+              firstName: authData.first_name,
+              lastName: authData.last_name || null,
+              username: authData.username || null,
+              photoUrl: authData.photo_url || null,
+            }),
+          });
 
-          // Авторизуем пользователя
-          await login(user);
+                           if (response.ok) {
+                   const result = await response.json();
+                   if (result.success) {
+                     // Авторизуем пользователя с данными из базы данных
+                     // НЕ используем данные из Telegram OAuth
+                     await login(result.user);
+                   } else {
+                     throw new Error("Failed to authenticate user");
+                   }
+                 } else {
+                   throw new Error("API error");
+                 }
           
           setStatus("success");
           setMessage("Авторизация успешна! Перенаправляем...");
@@ -58,7 +72,7 @@ export default function AuthCallback() {
     };
 
     processAuth();
-  }, [login]);
+  }, []); // Убираем login из зависимостей
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

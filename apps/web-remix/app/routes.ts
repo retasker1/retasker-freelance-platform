@@ -10,6 +10,7 @@ export default [
   route("api/orders", "routes/api/orders.ts"),
   route("api/deals", "routes/api/deals.ts"),
   route("api/users", "routes/api/users.ts"),
+  route("api/users.stats", "routes/api/users.stats.ts"),
   route("api/auth/telegram", "routes/api/auth.telegram.ts"),
   route("api/auth/telegram_web", "routes/api/auth.telegram_web.ts"),
   route("api/simple", "routes/api/simple.ts"),
