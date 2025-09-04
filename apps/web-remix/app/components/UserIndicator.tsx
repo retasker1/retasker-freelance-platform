@@ -29,6 +29,14 @@ export function UserIndicator({ user }: UserIndicatorProps) {
 
   const displayName = user.username ? `@${user.username}` : (user.firstName || 'Пользователь');
 
+  const handleLogout = () => {
+    // Очищаем localStorage (как на Fragment)
+    localStorage.removeItem("retasker_user");
+    
+    // Просто перенаправляем на главную страницу
+    window.location.href = "/";
+  };
+
   return (
     <div className="flex items-center space-x-3">
       <Link
@@ -52,6 +60,16 @@ export function UserIndicator({ user }: UserIndicatorProps) {
           {displayName}
         </span>
       </Link>
+      
+      <button
+        onClick={handleLogout}
+        className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+      >
+        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+        </svg>
+        Выйти
+      </button>
     </div>
   );
 }
