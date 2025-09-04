@@ -4,10 +4,23 @@ import { prisma } from "../../lib/prisma";
 export async function loader({ request }: Route.LoaderArgs) {
   try {
     const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
+    let userId = url.searchParams.get("userId");
 
     if (!userId) {
       return new Response("User ID is required", { status: 400 });
+    }
+
+    // Если ID в старом формате, ищем по Telegram ID
+    if (userId.startsWith('user_')) {
+      const telegramId = userId.replace('user_', '');
+      const user = await prisma.user.findUnique({
+        where: { telegramId: telegramId }
+      });
+      if (user) {
+        userId = user.id;
+      } else {
+        return new Response("User not found", { status: 404 });
+      }
     }
 
     // Получаем статистику пользователя

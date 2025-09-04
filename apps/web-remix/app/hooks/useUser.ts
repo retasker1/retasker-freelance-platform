@@ -41,36 +41,66 @@ export function useUser() {
   useEffect(() => {
     // Проверяем, есть ли данные пользователя в localStorage
     const savedUser = localStorage.getItem("retasker_user");
+    console.log("Checking localStorage for user:", savedUser);
+    
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
-        setLoading(false);
-        return;
+        const userData = JSON.parse(savedUser);
+        console.log("Parsed user data:", userData);
+        
+        // Проверяем, что ID в правильном формате (cuid)
+        if (userData.id && !userData.id.startsWith('user_')) {
+          console.log("Valid user found in localStorage, setting user");
+          setUser(userData);
+          setLoading(false);
+          return;
+        } else {
+          // Если ID в старом формате, очищаем localStorage
+          console.log("Old user ID format detected, clearing localStorage");
+          localStorage.removeItem("retasker_user");
+        }
       } catch (error) {
         console.error("Error parsing saved user:", error);
         localStorage.removeItem("retasker_user");
       }
+    } else {
+      console.log("No user found in localStorage");
     }
 
     // Пытаемся авторизоваться через Telegram Web App
     checkTelegramAuth();
-  }, []);
+
+    // Таймаут на случай, если авторизация зависнет
+    const timeout = setTimeout(() => {
+      console.log("Auth timeout, setting loading to false");
+      setLoading(false);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkTelegramAuth = async () => {
     try {
       // Проверяем, запущены ли мы в Telegram Web App
       if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+        console.log("Telegram Web App detected, attempting auth...");
         const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
         const result = await loginWithTelegramData(telegramUser);
         if (result.success) {
+          console.log("Telegram auth successful");
           setLoading(false);
           return;
+        } else {
+          console.log("Telegram auth failed:", result.error);
         }
+      } else {
+        console.log("No Telegram Web App detected");
       }
     } catch (error) {
       console.error("Telegram auth check error:", error);
     }
     
+    console.log("Setting loading to false");
     setLoading(false);
   };
 
@@ -93,6 +123,7 @@ export function useUser() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
+          // Используем данные из базы данных, а не из Telegram OAuth
           setUser(data.user);
           localStorage.setItem("retasker_user", JSON.stringify(data.user));
           return { success: true, user: data.user };
@@ -118,7 +149,8 @@ export function useUser() {
           lastName: userData.lastName,
           username: userData.username,
           photoUrl: userData.photoUrl,
-          isActive: true,
+          isActive: userData.isActive || true,
+          createdAt: userData.createdAt,
         };
         
         console.log("Setting user:", user);
@@ -145,20 +177,21 @@ export function useUser() {
         const data = await response.json();
         console.log("Response data:", data);
         
-        // Создаем фиктивного пользователя для тестирования
-        const mockUser = {
-          id: `user_${telegramId}`,
-          telegramId: telegramId,
-          firstName: "Тестовый",
-          lastName: "Пользователь",
-          username: `user_${telegramId}`,
-          photoUrl: null,
-          isActive: true,
+        // Используем данные из API
+        const user = {
+          id: data.id,
+          telegramId: data.telegramId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          username: data.username,
+          photoUrl: data.photoUrl,
+          isActive: data.isActive,
+          createdAt: data.createdAt,
         };
         
-        setUser(mockUser);
-        localStorage.setItem("retasker_user", JSON.stringify(mockUser));
-        return { success: true, user: mockUser };
+        setUser(user);
+        localStorage.setItem("retasker_user", JSON.stringify(user));
+        return { success: true, user };
       }
       
       const errorText = await response.text();

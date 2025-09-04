@@ -11,7 +11,6 @@ export function ProfileEditForm({ onClose }: ProfileEditFormProps) {
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
-    username: user?.username || "",
     photoUrl: user?.photoUrl || "",
   });
 
@@ -31,10 +30,13 @@ export function ProfileEditForm({ onClose }: ProfileEditFormProps) {
 
       if (response.ok) {
         const updatedUser = await response.json();
+        console.log("Profile updated successfully:", updatedUser);
         updateUser(updatedUser);
         onClose();
       } else {
-        console.error("Failed to update profile");
+        const errorText = await response.text();
+        console.error("Failed to update profile:", response.status, errorText);
+        alert("Ошибка при сохранении профиля: " + errorText);
       }
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -97,19 +99,6 @@ export function ProfileEditForm({ onClose }: ProfileEditFormProps) {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="@username"
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">

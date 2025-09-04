@@ -58,18 +58,42 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (method === "PUT" && userId) {
       // Обновление профиля пользователя
-      const body = await request.json();
-      const { firstName, lastName, username, photoUrl } = body;
+                   const body = await request.json();
+             const { firstName, lastName, photoUrl } = body;
 
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          firstName: firstName || undefined,
-          lastName: lastName || undefined,
-          username: username || undefined,
-          photoUrl: photoUrl || undefined,
-          updatedAt: new Date(),
-        },
+      console.log("Updating user with ID:", userId);
+      
+      // Сначала пытаемся найти по ID, если не найден - ищем по Telegram ID
+      let user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      console.log("User found by ID:", user);
+
+      if (!user && userId.startsWith('user_')) {
+        // Если ID в старом формате, извлекаем Telegram ID
+        const telegramId = userId.replace('user_', '');
+        console.log("Searching by Telegram ID:", telegramId);
+        user = await prisma.user.findUnique({
+          where: { telegramId: telegramId }
+        });
+        console.log("User found by Telegram ID:", user);
+      }
+
+      if (!user) {
+        console.log("User not found, returning 404");
+        return new Response("User not found", { status: 404 });
+      }
+
+                   const updatedUser = await prisma.user.update({
+               where: { id: user.id },
+               data: {
+                 firstName: firstName || undefined,
+                 lastName: lastName || undefined,
+                 // username не обновляем - он остается из Telegram
+                 photoUrl: photoUrl || user.photoUrl, // Сохраняем оригинальную фотографию, если новая не указана
+                 updatedAt: new Date(),
+               },
         select: {
           id: true,
           telegramId: true,
