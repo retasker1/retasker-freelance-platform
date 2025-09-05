@@ -4,6 +4,7 @@ import { useUser } from "../hooks/useUser";
 import { useState } from "react";
 import { DealResponseForm } from "../components/DealResponseForm";
 import { OrderEditForm } from "../components/OrderEditForm";
+import { Pagination } from "../components/Pagination";
 import { getAllTags, categories, getCategoryLabel } from "../utils/tagsConfig";
 
 export function meta({}: Route.MetaArgs) {
@@ -253,6 +254,7 @@ export default function OrdersPage() {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     const url = new URL(window.location.href);
+    url.searchParams.set('page', '1'); // Сбрасываем на первую страницу при поиске
     if (query.trim()) {
       url.searchParams.set('search', query.trim());
     } else {
@@ -278,6 +280,7 @@ export default function OrdersPage() {
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
     const url = new URL(window.location.href);
+    url.searchParams.set('page', '1'); // Сбрасываем на первую страницу при фильтрации
     if (category) {
       url.searchParams.set('category', category);
     } else {
@@ -289,6 +292,7 @@ export default function OrdersPage() {
   const handleUrgentToggle = (isUrgent: boolean) => {
     setUrgentOnly(isUrgent);
     const url = new URL(window.location.href);
+    url.searchParams.set('page', '1'); // Сбрасываем на первую страницу при фильтрации
     if (isUrgent) {
       url.searchParams.set('priority', 'URGENT');
     } else {
@@ -583,6 +587,7 @@ export default function OrdersPage() {
                         const url = new URL(window.location.href);
                         url.searchParams.set('viewMode', 'all');
                         url.searchParams.delete('userId');
+                        url.searchParams.set('page', '1'); // Сбрасываем на первую страницу
                         window.location.href = url.toString();
                       }}
                       className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
@@ -597,6 +602,7 @@ export default function OrdersPage() {
                       onClick={() => {
                         const url = new URL(window.location.href);
                         url.searchParams.set('viewMode', 'my');
+                        url.searchParams.set('page', '1'); // Сбрасываем на первую страницу
                         if (user?.id) {
                           url.searchParams.set('userId', user.id);
                         }
@@ -620,7 +626,7 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
                   Поиск
@@ -720,7 +726,7 @@ export default function OrdersPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Сортировка
               </label>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <select
                     value={sortBy}
@@ -845,30 +851,32 @@ export default function OrdersPage() {
           <div className="space-y-6">
             {orders && orders.length > 0 ? (
               orders.map((order: any) => (
-                <div key={order.id} className="bg-white shadow rounded-lg p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1 min-w-0 pr-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">
+                <div key={order.id} className="bg-white shadow rounded-lg p-4 sm:p-6">
+                  {/* Заголовок и цена - адаптивная версия */}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 break-words">
                         {order.title || 'Без названия'}
                       </h3>
-                      <p className="text-gray-600 mb-4 line-clamp-3 break-words">
+                      <p className="text-gray-600 mb-3 line-clamp-3 break-words text-sm sm:text-base">
                         {order.description || 'Описание не указано'}
                       </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-2xl font-bold text-green-600 mb-1">
+                    <div className="flex justify-between sm:block sm:text-right">
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">
                         ${order.budgetCents ? (order.budgetCents / 100).toFixed(0) : '0'}
                       </div>
-                      <div className="text-sm text-gray-500 whitespace-nowrap">
-                        {order.workType === 'FIXED' ? 'Фиксированная цена' :
-                         order.workType === 'HOURLY' ? 'Почасовая оплата' : 
+                      <div className="text-xs sm:text-sm text-gray-500">
+                        {order.workType === 'FIXED' ? 'Фикс' :
+                         order.workType === 'HOURLY' ? 'Почасовая' : 
                          order.workType === 'MILESTONE' ? 'По этапам' : 'Не указано'}
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
+                  {/* Статусы и категории - адаптивная версия */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         order.status === 'OPEN' ? 'bg-green-100 text-green-800' :
                         order.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
@@ -893,7 +901,7 @@ export default function OrdersPage() {
                       )}
                     </div>
 
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500">
                       {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ru-RU') : 'Дата не указана'}
                     </div>
                   </div>
@@ -921,24 +929,24 @@ export default function OrdersPage() {
                     </div>
                   )}
 
-                  {/* Кнопки действий */}
-                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200 flex-wrap">
+                  {/* Кнопки действий - адаптивная версия */}
+                  <div className="flex flex-col sm:flex-row sm:justify-end gap-2 mt-4 pt-4 border-t border-gray-200">
                     <Link 
                       to={`/orders?view=${order.id}`}
-                      className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
+                      className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium text-center border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
                     >
                       Подробнее
                     </Link>
                     {order.status === 'OPEN' && user && user.id !== order.customerId && (
                       <button 
                         onClick={() => handleDealResponse(order)}
-                        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium whitespace-nowrap"
+                        className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium transition-colors"
                       >
                         Откликнуться
                       </button>
                     )}
                     {order.status === 'OPEN' && user && user.id === order.customerId && (
-                      <span className="px-3 py-1 text-sm text-gray-500 font-medium whitespace-nowrap">
+                      <span className="px-4 py-2 text-sm text-gray-500 font-medium text-center border border-gray-300 rounded-md bg-gray-50">
                         Ваш заказ
                       </span>
                     )}
@@ -980,24 +988,17 @@ export default function OrdersPage() {
           </div>
 
           {/* Пагинация */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="mt-8 flex justify-center">
-              <nav className="flex space-x-2">
-                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                  <Link
-                    key={page}
-                    to={`/orders?page=${page}`}
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      page === pagination.currentPage
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </Link>
-                ))}
-              </nav>
-            </div>
+          {data.pagination && (
+            <Pagination
+              currentPage={data.pagination.page}
+              totalPages={data.pagination.totalPages}
+              hasNextPage={data.pagination.hasNextPage}
+              hasPrevPage={data.pagination.hasPrevPage}
+              totalCount={data.pagination.totalCount}
+              limit={data.pagination.limit}
+              baseUrl="/orders"
+              searchParams={new URLSearchParams(window.location.search)}
+            />
           )}
         </div>
       </div>
