@@ -143,6 +143,11 @@ export default function OrdersPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(data.filters.search || '');
+  const [sortBy, setSortBy] = useState(data.filters.sortBy || 'createdAt');
+  const [sortOrder, setSortOrder] = useState(data.filters.sortOrder || 'desc');
+  const [selectedCategory, setSelectedCategory] = useState(data.filters.category || '');
+  const [urgentOnly, setUrgentOnly] = useState(data.filters.priority === 'URGENT');
 
   const handleDealResponse = (order: any) => {
     setSelectedOrder(order);
@@ -243,6 +248,53 @@ export default function OrdersPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const url = new URL(window.location.href);
+    if (query.trim()) {
+      url.searchParams.set('search', query.trim());
+    } else {
+      url.searchParams.delete('search');
+    }
+    window.location.href = url.toString();
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchQuery);
+  };
+
+  const handleSortChange = (newSortBy: string, newSortOrder: string) => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    const url = new URL(window.location.href);
+    url.searchParams.set('sortBy', newSortBy);
+    url.searchParams.set('sortOrder', newSortOrder);
+    window.location.href = url.toString();
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    const url = new URL(window.location.href);
+    if (category) {
+      url.searchParams.set('category', category);
+    } else {
+      url.searchParams.delete('category');
+    }
+    window.location.href = url.toString();
+  };
+
+  const handleUrgentToggle = (isUrgent: boolean) => {
+    setUrgentOnly(isUrgent);
+    const url = new URL(window.location.href);
+    if (isUrgent) {
+      url.searchParams.set('priority', 'URGENT');
+    } else {
+      url.searchParams.delete('priority');
+    }
+    window.location.href = url.toString();
   };
 
   // Показываем загрузку пока проверяем авторизацию
@@ -568,17 +620,46 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
                   Поиск
                 </label>
-                <input
-                  type="text"
-                  id="search"
-                  placeholder="Название заказа..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Например: React Facebook или веб-разработка дизайн..."
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </div>
+                {data.filters.search && (
+                  <div className="mt-1 flex items-center">
+                    <span className="text-xs text-gray-500">
+                      Поиск: "{data.filters.search}"
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSearch('')}
+                      className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
+                    >
+                      Очистить
+                    </button>
+                  </div>
+                )}
+                <div className="mt-1 text-xs text-gray-500">
+                  💡 Введите несколько слов через пробел для поиска заказов, содержащих любое из этих слов
+                </div>
               </div>
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
@@ -586,6 +667,8 @@ export default function OrdersPage() {
                 </label>
                 <select
                   id="category"
+                  value={selectedCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Все категории</option>
@@ -597,58 +680,166 @@ export default function OrdersPage() {
                 </select>
               </div>
               <div>
-                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Приоритет
                 </label>
-                <select
-                  id="priority"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Все приоритеты</option>
-                  <option value="URGENT">Срочно</option>
-                  <option value="MEDIUM">Обычный</option>
-                </select>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="urgent"
+                    checked={urgentOnly}
+                    onChange={(e) => handleUrgentToggle(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="urgent" className="ml-2 text-sm text-gray-700">
+                    Только срочные заказы
+                  </label>
+                </div>
               </div>
-              <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                  Статус
-                </label>
-                <select
-                  id="status"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Все статусы</option>
-                  <option value="OPEN">Открыт</option>
-                  <option value="IN_PROGRESS">В работе</option>
-                  <option value="COMPLETED">Завершен</option>
-                  <option value="CANCELLED">Отменен</option>
-                </select>
+              {data.filters.viewMode === 'my' && (
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                    Статус
+                  </label>
+                  <select
+                    id="status"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Все статусы</option>
+                    <option value="OPEN">Открыт</option>
+                    <option value="IN_PROGRESS">В работе</option>
+                    <option value="COMPLETED">Завершен</option>
+                    <option value="CANCELLED">Отменен</option>
+                  </select>
+                </div>
+              )}
+            </form>
+            
+            {/* Сортировка */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Сортировка
+              </label>
+              <div className="flex space-x-4">
+                <div className="flex-1">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value, sortOrder)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="createdAt">По дате создания</option>
+                    <option value="budgetCents">По бюджету</option>
+                    <option value="priority">По приоритету</option>
+                    <option value="title">По названию</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => handleSortChange(sortBy, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="desc">По убыванию</option>
+                    <option value="asc">По возрастанию</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">
+                {sortBy === 'createdAt' && 'Новые заказы сверху'}
+                {sortBy === 'budgetCents' && (sortOrder === 'desc' ? 'Дорогие заказы сверху' : 'Дешевые заказы сверху')}
+                {sortBy === 'priority' && 'Срочные заказы сверху'}
+                {sortBy === 'title' && (sortOrder === 'asc' ? 'А-Я' : 'Я-А')}
               </div>
             </div>
             
-            {/* Фильтр по тегам */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Теги
-              </label>
-              <div className="max-h-24 overflow-y-auto border border-gray-300 rounded-md p-2">
-                <div className="flex flex-wrap gap-2">
-                  {getAllTags().map((tag) => (
+          </div>
+
+          {/* Информация о результатах и сортировке */}
+          {(data.filters.search || data.filters.category || data.filters.priority || data.filters.sortBy !== 'createdAt' || data.filters.sortOrder !== 'desc') && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {data.filters.search && (
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span className="text-sm text-blue-800">
+                        Найдено: <strong>{orders?.length || 0}</strong> по запросу "<strong>{data.filters.search}</strong>"
+                      </span>
+                    </div>
+                  )}
+                  {data.filters.category && (
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      <span className="text-sm text-blue-800">
+                        Категория: <strong>{getCategoryLabel(data.filters.category)}</strong>
+                      </span>
+                    </div>
+                  )}
+                  {data.filters.priority === 'URGENT' && (
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <span className="text-sm text-red-800">
+                        Только срочные заказы
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                    </svg>
+                    <span className="text-sm text-blue-800">
+                      Сортировка: <strong>
+                        {data.filters.sortBy === 'createdAt' && 'По дате'}
+                        {data.filters.sortBy === 'budgetCents' && 'По бюджету'}
+                        {data.filters.sortBy === 'priority' && 'По приоритету'}
+                        {data.filters.sortBy === 'title' && 'По названию'}
+                      </strong> ({data.filters.sortOrder === 'desc' ? 'убывание' : 'возрастание'})
+                    </span>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  {data.filters.search && (
                     <button
-                      key={tag}
-                      type="button"
-                      className="px-2 py-1 text-xs rounded-full border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      onClick={() => handleSearch('')}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
                     >
-                      {tag}
+                      Очистить поиск
                     </button>
-                  ))}
+                  )}
+                  {data.filters.category && (
+                    <button
+                      onClick={() => handleCategoryChange('')}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Очистить категорию
+                    </button>
+                  )}
+                  {data.filters.priority === 'URGENT' && (
+                    <button
+                      onClick={() => handleUrgentToggle(false)}
+                      className="text-sm text-red-600 hover:text-red-800 underline"
+                    >
+                      Очистить фильтр срочности
+                    </button>
+                  )}
+                  {(data.filters.sortBy !== 'createdAt' || data.filters.sortOrder !== 'desc') && (
+                    <button
+                      onClick={() => handleSortChange('createdAt', 'desc')}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Сбросить сортировку
+                    </button>
+                  )}
                 </div>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                Нажмите на тег для фильтрации заказов
-              </p>
             </div>
-          </div>
+          )}
 
           {/* Список заказов */}
           <div className="space-y-6">
@@ -756,19 +947,34 @@ export default function OrdersPage() {
               ))
             ) : (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">📋</div>
+                <div className="text-6xl mb-4">
+                  {data.filters.search ? '🔍' : '📋'}
+                </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Заказы не найдены
+                  {data.filters.search ? 'По вашему запросу ничего не найдено' : 'Заказы не найдены'}
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  Попробуйте изменить фильтры или создать новый заказ
+                  {data.filters.search 
+                    ? `Попробуйте изменить поисковый запрос "${data.filters.search}" или очистить фильтры`
+                    : 'Попробуйте изменить фильтры или создать новый заказ'
+                  }
                 </p>
-                <Link
-                  to="/orders/new"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  Создать заказ
-                </Link>
+                <div className="flex justify-center space-x-3">
+                  {data.filters.search && (
+                    <button
+                      onClick={() => handleSearch('')}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Очистить поиск
+                    </button>
+                  )}
+                  <Link
+                    to="/orders/new"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Создать заказ
+                  </Link>
+                </div>
               </div>
             )}
           </div>

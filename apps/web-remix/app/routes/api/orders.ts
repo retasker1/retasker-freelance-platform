@@ -16,6 +16,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     const limit = parseInt(url.searchParams.get("limit") || "10");
     const userId = url.searchParams.get("userId"); // Для фильтрации "Мои заказы"
 
+    console.log("=== ORDERS API LOADER ===");
+    console.log("URL:", request.url);
+    console.log("Search params:", {
+      status,
+      search,
+      category,
+      priority,
+      sortBy,
+      sortOrder,
+      viewMode,
+      page,
+      limit,
+      userId
+    });
+
     // Строим условия для фильтрации
     const where: any = {};
     
@@ -32,10 +47,24 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
     
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      // Разбиваем поисковый запрос на отдельные слова
+      const searchTerms = search.trim().split(/\s+/).filter(term => term.length > 0);
+      
+      console.log("Search terms:", searchTerms);
+      
+      // Ищем заказы, которые содержат хотя бы одно из слов
+      const searchConditions = [];
+      
+      for (const term of searchTerms) {
+        searchConditions.push(
+          { title: { contains: term } },
+          { description: { contains: term } },
+          { tags: { contains: term } }
+        );
+      }
+      
+      where.OR = searchConditions;
+      console.log("Search where (OR logic):", where.OR);
     }
 
     // Фильтр "Мои заказы"
@@ -52,12 +81,17 @@ export async function loader({ request }: Route.LoaderArgs) {
       orderBy.budgetCents = sortOrder;
     } else if (sortBy === "title") {
       orderBy.title = sortOrder;
+    } else if (sortBy === "priority") {
+      orderBy.priority = sortOrder;
     } else {
       orderBy.createdAt = sortOrder;
     }
 
     // Пагинация
     const skip = (page - 1) * limit;
+
+    console.log("Final where clause:", JSON.stringify(where, null, 2));
+    console.log("Order by:", orderBy);
 
     // Получаем заказы из базы данных
     const [orders, totalCount] = await Promise.all([
