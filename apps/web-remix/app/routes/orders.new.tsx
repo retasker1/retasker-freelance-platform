@@ -4,6 +4,7 @@ import { useUser } from "../hooks/useUser";
 import { OrderFormProgress } from "../components/OrderFormProgress";
 import { OrderPreview } from "../components/OrderPreview";
 import { useState, useEffect } from "react";
+import { categories, tagsByCategory, getTagsByCategory } from "../utils/tagsConfig";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -34,9 +35,15 @@ export async function action({ request }: Route.ActionArgs) {
   const budget = formData.get("budget") as string;
   const category = formData.get("category") as string;
   const deadline = formData.get("deadline") as string;
-  const tags = formData.get("tags") as string;
+  // Получаем все значения тегов (множественные поля с одинаковым именем)
+  const tagsArray = formData.getAll("tags") as string[];
+  const tags = tagsArray.filter(tag => tag && tag.trim().length > 0);
+  
+  console.log("Tags from form:", tagsArray);
+  console.log("Filtered tags:", tags);
   const isUrgent = formData.get("isUrgent") === "on";
   const workType = formData.get("workType") as string;
+  const action = formData.get("action") as string;
 
   // Улучшенная валидация
   const errors: Record<string, string> = {};
@@ -84,12 +91,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
   
   // Валидация тегов
-  if (tags) {
-    const tagList = tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-    if (tagList.length > 10) {
+  if (tags && tags.length > 0) {
+    if (tags.length > 10) {
       errors.tags = "Максимум 10 тегов";
     }
-    for (const tag of tagList) {
+    for (const tag of tags) {
       if (tag.length > 20) {
         errors.tags = "Каждый тег не должен превышать 20 символов";
         break;
@@ -100,6 +106,14 @@ export async function action({ request }: Route.ActionArgs) {
   if (Object.keys(errors).length > 0) {
     return { 
       errors, 
+      values: { title, description, budget, category, deadline, tags, isUrgent, workType } 
+    };
+  }
+
+  // Если это предварительный просмотр, возвращаем данные без создания заказа
+  if (action === "preview") {
+    return { 
+      preview: true,
       values: { title, description, budget, category, deadline, tags, isUrgent, workType } 
     };
   }
@@ -120,7 +134,7 @@ export async function action({ request }: Route.ActionArgs) {
         budgetCents: Math.round(budgetNum * 100), // Конвертируем в центы
         category,
         deadline: deadline || null,
-        tags: tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [],
+        tags: tags,
         priority: isUrgent ? "URGENT" : "MEDIUM",
         workType: workType || "FIXED",
         customerId: userId,
@@ -157,7 +171,19 @@ export default function NewOrderPage() {
     deadline: actionData?.values?.deadline || "",
     isUrgent: actionData?.values?.isUrgent || false,
     workType: actionData?.values?.workType || "FIXED",
-    tags: actionData?.values?.tags || "",
+    tags: actionData?.values?.tags ? (() => {
+      // Если tags уже массив, возвращаем его
+      if (Array.isArray(actionData.values.tags)) {
+        return actionData.values.tags;
+      }
+      // Если это строка, пытаемся распарсить как JSON
+      try {
+        return JSON.parse(actionData.values.tags);
+      } catch {
+        // Если не JSON, разбиваем по запятым
+        return actionData.values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      }
+    })() : [],
   });
 
   // Обновляем formData при изменении actionData
@@ -171,8 +197,27 @@ export default function NewOrderPage() {
         deadline: actionData.values.deadline || "",
         isUrgent: actionData.values.isUrgent || false,
         workType: actionData.values.workType || "FIXED",
-        tags: actionData.values.tags || "",
+        tags: actionData.values.tags ? (() => {
+          // Если tags уже массив, возвращаем его
+          if (Array.isArray(actionData.values.tags)) {
+            return actionData.values.tags;
+          }
+          // Если это строка, пытаемся распарсить как JSON
+          try {
+            return JSON.parse(actionData.values.tags);
+          } catch {
+            // Если не JSON, разбиваем по запятым
+            return actionData.values.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+          }
+        })() : [],
       });
+    }
+  }, [actionData]);
+
+  // Показываем предварительный просмотр если actionData.preview === true
+  useEffect(() => {
+    if (actionData?.preview) {
+      setShowPreview(true);
     }
   }, [actionData]);
 
@@ -200,19 +245,6 @@ export default function NewOrderPage() {
     );
   }
 
-  const categories = [
-    { value: "web", label: "Веб-разработка" },
-    { value: "mobile", label: "Мобильная разработка" },
-    { value: "design", label: "Дизайн" },
-    { value: "marketing", label: "Маркетинг" },
-    { value: "writing", label: "Копирайтинг" },
-    { value: "translation", label: "Переводы" },
-    { value: "data", label: "Анализ данных" },
-    { value: "ai", label: "ИИ и машинное обучение" },
-    { value: "blockchain", label: "Блокчейн" },
-    { value: "other", label: "Другое" },
-  ];
-
   // Приоритет теперь только один - срочный (чекбокс)
 
   const workTypes = [
@@ -221,8 +253,30 @@ export default function NewOrderPage() {
     { value: "MILESTONE", label: "По этапам" },
   ];
 
+  const getAvailableTags = () => {
+    return getTagsByCategory(formData.category);
+  };
+
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Очищаем теги при смене категории
+      if (field === 'category') {
+        newData.tags = [];
+      }
+      
+      return newData;
+    });
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tag) 
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag]
+    }));
   };
 
   const handlePreview = () => {
@@ -233,46 +287,6 @@ export default function NewOrderPage() {
     setShowPreview(false);
   };
 
-  const handleSubmit = () => {
-    console.log('handleSubmit вызвана');
-    console.log('formData:', formData);
-    console.log('user.id:', user.id);
-    
-    // Создаем скрытую форму и отправляем
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/orders/new';
-    
-    // Добавляем все поля
-    Object.entries({
-      userId: user.id,
-      title: formData.title,
-      description: formData.description,
-      budget: formData.budget,
-      category: formData.category,
-      deadline: formData.deadline,
-      isUrgent: formData.isUrgent,
-      workType: formData.workType,
-      tags: formData.tags,
-    }).forEach(([key, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = value.toString();
-      form.appendChild(input);
-    });
-
-    console.log('Отправляем форму с данными:', {
-      userId: user.id,
-      title: formData.title,
-      description: formData.description,
-      budget: formData.budget,
-      category: formData.category,
-    });
-
-    document.body.appendChild(form);
-    form.submit();
-  };
 
   // Если показываем предварительный просмотр
   if (showPreview) {
@@ -282,8 +296,8 @@ export default function NewOrderPage() {
           <OrderFormProgress formData={formData} showPreview={true} />
           <OrderPreview
             formData={formData}
+            userId={user.id}
             onEdit={handleEdit}
-            onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
           />
         </div>
@@ -326,6 +340,10 @@ export default function NewOrderPage() {
 
         <Form method="post" className="space-y-6">
           <input type="hidden" name="userId" value={user.id} />
+          {/* Скрытые поля для тегов */}
+          {formData.tags.map((tag, index) => (
+            <input key={index} type="hidden" name="tags" value={tag} />
+          ))}
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Название заказа *
@@ -491,26 +509,52 @@ export default function NewOrderPage() {
           </div>
 
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Теги
             </label>
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                actionData?.errors?.tags ? "border-red-300" : "border-gray-300"
-              }`}
-              placeholder="react, typescript, дизайн (через запятую)"
-            />
-            {actionData?.errors?.tags && (
-              <p className="mt-1 text-sm text-red-600">{actionData.errors.tags}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              Укажите ключевые слова через запятую (максимум 10 тегов)
+            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+              <div className="flex flex-wrap gap-2">
+                {getAvailableTags().map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleTagToggle(tag)}
+                    className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                      formData.tags.includes(tag)
+                        ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Выберите подходящие теги (необязательно)
             </p>
+            {formData.tags.length > 0 && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-600 mb-1">Выбранные теги:</p>
+                <div className="flex flex-wrap gap-1">
+                  {formData.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleTagToggle(tag)}
+                        className="ml-1 text-indigo-600 hover:text-indigo-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-between">
@@ -522,8 +566,9 @@ export default function NewOrderPage() {
             </a>
             <div className="flex space-x-3">
               <button
-                type="button"
-                onClick={handlePreview}
+                type="submit"
+                name="action"
+                value="preview"
                 disabled={!formData.title || !formData.description || !formData.budget || !formData.category}
                 className="px-4 py-2 border border-indigo-300 rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >

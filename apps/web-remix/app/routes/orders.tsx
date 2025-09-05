@@ -4,6 +4,7 @@ import { useUser } from "../hooks/useUser";
 import { useState } from "react";
 import { DealResponseForm } from "../components/DealResponseForm";
 import { OrderEditForm } from "../components/OrderEditForm";
+import { getAllTags, categories, getCategoryLabel } from "../utils/tagsConfig";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -45,21 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       const { prisma } = await import("../lib/prisma");
       const order = await prisma.order.findUnique({
         where: { id: view },
-        select: {
-          id: true,
-          shortCode: true,
-          title: true,
-          description: true,
-          budgetCents: true,
-          status: true,
-          category: true,
-          priority: true,
-          workType: true,
-          tags: true,
-          deadline: true,
-          createdAt: true,
-          updatedAt: true,
-          customerId: true,
+        include: {
           customer: {
             select: {
               id: true,
@@ -289,16 +276,6 @@ export default function OrdersPage() {
                       🔥 Срочно
                     </span>
                   )}
-                  {order.priority === 'HIGH' && (
-                    <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-orange-100 text-orange-800 flex-shrink-0">
-                      ⚡ Высокий
-                    </span>
-                  )}
-                  {order.priority === 'LOW' && (
-                    <span className="inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800 flex-shrink-0">
-                      📋 Низкий
-                    </span>
-                  )}
                   <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full flex-shrink-0 ${
                     order.status === 'OPEN' ? 'bg-green-100 text-green-800' :
                     order.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
@@ -335,14 +312,7 @@ export default function OrdersPage() {
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Категория</h3>
                 <span className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-indigo-100 text-indigo-800 max-w-full truncate">
-                  {order.category === 'web' ? 'Веб-разработка' :
-                   order.category === 'mobile' ? 'Мобильная разработка' :
-                   order.category === 'design' ? 'Дизайн' :
-                   order.category === 'marketing' ? 'Маркетинг' :
-                   order.category === 'writing' ? 'Копирайтинг' :
-                   order.category === 'ai' ? 'ИИ и машинное обучение' :
-                   order.category === 'blockchain' ? 'Блокчейн' : 
-                   order.category || 'Другое'}
+                  {getCategoryLabel(order.category)}
                 </span>
               </div>
 
@@ -501,7 +471,7 @@ export default function OrdersPage() {
 
           {/* Фильтры и поиск */}
           <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
                   Поиск
@@ -522,14 +492,11 @@ export default function OrdersPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Все категории</option>
-                  <option value="web">Веб-разработка</option>
-                  <option value="mobile">Мобильная разработка</option>
-                  <option value="design">Дизайн</option>
-                  <option value="marketing">Маркетинг</option>
-                  <option value="writing">Копирайтинг</option>
-                  <option value="ai">ИИ и машинное обучение</option>
-                  <option value="blockchain">Блокчейн</option>
-                  <option value="other">Другое</option>
+                  {categories.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -560,6 +527,29 @@ export default function OrdersPage() {
                   <option value="CANCELLED">Отменен</option>
                 </select>
               </div>
+            </div>
+            
+            {/* Фильтр по тегам */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Теги
+              </label>
+              <div className="max-h-24 overflow-y-auto border border-gray-300 rounded-md p-2">
+                <div className="flex flex-wrap gap-2">
+                  {getAllTags().map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className="px-2 py-1 text-xs rounded-full border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Нажмите на тег для фильтрации заказов
+              </p>
             </div>
           </div>
 
@@ -605,29 +595,12 @@ export default function OrdersPage() {
                       </span>
                       
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                        {order.category === 'web' ? 'Веб-разработка' :
-                         order.category === 'mobile' ? 'Мобильная разработка' :
-                         order.category === 'design' ? 'Дизайн' :
-                         order.category === 'marketing' ? 'Маркетинг' :
-                         order.category === 'writing' ? 'Копирайтинг' :
-                         order.category === 'ai' ? 'ИИ и машинное обучение' :
-                         order.category === 'blockchain' ? 'Блокчейн' : 
-                         order.category || 'Другое'}
+                        {getCategoryLabel(order.category)}
                       </span>
 
                       {order.priority === 'URGENT' && (
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                           🔥 Срочно
-                        </span>
-                      )}
-                      {order.priority === 'HIGH' && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                          ⚡ Высокий
-                        </span>
-                      )}
-                      {order.priority === 'LOW' && (
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          📋 Низкий
                         </span>
                       )}
                     </div>
@@ -642,8 +615,10 @@ export default function OrdersPage() {
                     <div className="mb-4">
                       <div className="flex flex-wrap gap-2">
                         {(() => {
+                          console.log(`Rendering tags for order ${order.id} (${order.title}):`, order.tags);
                           try {
                             const tags = JSON.parse(order.tags);
+                            console.log(`Parsed tags for order ${order.id}:`, tags);
                             return tags.map((tag: string, index: number) => (
                               <span key={index} className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 max-w-full truncate">
                                 {tag}

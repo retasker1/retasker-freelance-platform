@@ -1,4 +1,6 @@
 import React from 'react';
+import { Form } from 'react-router';
+import { getCategoryLabel } from '../utils/tagsConfig';
 
 interface OrderPreviewProps {
   formData: {
@@ -9,14 +11,14 @@ interface OrderPreviewProps {
     deadline: string;
     isUrgent: boolean;
     workType: string;
-    tags: string;
+    tags: string | string[];
   };
+  userId: string;
   onEdit: () => void;
-  onSubmit: () => void;
   isSubmitting: boolean;
 }
 
-export function OrderPreview({ formData, onEdit, onSubmit, isSubmitting }: OrderPreviewProps) {
+export function OrderPreview({ formData, userId, onEdit, isSubmitting }: OrderPreviewProps) {
   const categories = [
     { value: "web", label: "Веб-разработка" },
     { value: "mobile", label: "Мобильная разработка" },
@@ -42,7 +44,7 @@ export function OrderPreview({ formData, onEdit, onSubmit, isSubmitting }: Order
   const getWorkTypeLabel = (value: string) => 
     workTypes.find(type => type.value === value)?.label || value;
 
-  const tagList = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
+  const tagList = Array.isArray(formData.tags) ? formData.tags : (formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : []);
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
@@ -146,17 +148,29 @@ export function OrderPreview({ formData, onEdit, onSubmit, isSubmitting }: Order
         >
           Назад к редактированию
         </button>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            console.log('Кнопка "Создать заказ" нажата');
-            onSubmit();
-          }}
-          disabled={isSubmitting}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-        >
-          {isSubmitting ? "Создание..." : "Создать заказ"}
-        </button>
+        <Form method="post" action="/orders/new">
+          <input type="hidden" name="userId" value={userId} />
+          <input type="hidden" name="title" value={formData.title} />
+          <input type="hidden" name="description" value={formData.description} />
+          <input type="hidden" name="budget" value={formData.budget} />
+          <input type="hidden" name="category" value={formData.category} />
+          <input type="hidden" name="deadline" value={formData.deadline} />
+          <input type="hidden" name="isUrgent" value={formData.isUrgent ? "on" : ""} />
+          <input type="hidden" name="workType" value={formData.workType} />
+          {/* Скрытые поля для тегов */}
+          {Array.isArray(formData.tags) ? formData.tags.map((tag, index) => (
+            <input key={index} type="hidden" name="tags" value={tag} />
+          )) : (
+            <input type="hidden" name="tags" value={formData.tags} />
+          )}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          >
+            {isSubmitting ? "Создание..." : "Создать заказ"}
+          </button>
+        </Form>
       </div>
     </div>
   );

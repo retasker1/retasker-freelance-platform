@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { categories, tagsByCategory, getTagsByCategory } from '../utils/tagsConfig';
 
 interface OrderEditFormProps {
   order: {
@@ -23,26 +24,19 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
     description: order.description || '',
     budget: order.budgetCents ? (order.budgetCents / 100).toString() : '',
     category: order.category || '',
-    priority: order.priority || 'MEDIUM',
+    isUrgent: order.priority === 'URGENT',
     workType: order.workType || 'FIXED',
-    tags: order.tags || '',
+    tags: order.tags ? (() => {
+      try {
+        return JSON.parse(order.tags);
+      } catch {
+        return order.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      }
+    })() : [],
     deadline: order.deadline ? new Date(order.deadline).toISOString().split('T')[0] : '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const categories = [
-    { value: "web", label: "Веб-разработка" },
-    { value: "mobile", label: "Мобильная разработка" },
-    { value: "design", label: "Дизайн" },
-    { value: "marketing", label: "Маркетинг" },
-    { value: "writing", label: "Копирайтинг" },
-    { value: "translation", label: "Переводы" },
-    { value: "data", label: "Анализ данных" },
-    { value: "ai", label: "ИИ и машинное обучение" },
-    { value: "blockchain", label: "Блокчейн" },
-    { value: "other", label: "Другое" },
-  ];
 
   const workTypes = [
     { value: "FIXED", label: "Фиксированная цена" },
@@ -50,19 +44,27 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
     { value: "MILESTONE", label: "По этапам" },
   ];
 
-  const priorities = [
-    { value: "LOW", label: "Низкий" },
-    { value: "MEDIUM", label: "Обычный" },
-    { value: "HIGH", label: "Высокий" },
-    { value: "URGENT", label: "Срочно" },
-  ];
+  const getAvailableTags = () => {
+    return getTagsByCategory(formData.category);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+      
+      // Очищаем теги при смене категории
+      if (name === 'category') {
+        newData.tags = [];
+      }
+      
+      return newData;
+    });
     
     // Очищаем ошибку при изменении поля
     if (errors[name]) {
@@ -71,6 +73,15 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
         [name]: ''
       }));
     }
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tag) 
+        ? prev.tags.filter(t => t !== tag)
+        : [...prev.tags, tag]
+    }));
   };
 
   const validateForm = () => {
@@ -116,7 +127,7 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
     const updatedOrder = {
       ...formData,
       budgetCents: Math.round(Number(formData.budget) * 100),
-      isUrgent: formData.priority === 'URGENT',
+      priority: formData.isUrgent ? 'URGENT' : 'MEDIUM',
     };
 
     onSave(updatedOrder);
@@ -236,22 +247,24 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
             {/* Приоритет и тип работы */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-                  Приоритет
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="isUrgent"
+                    name="isUrgent"
+                    checked={formData.isUrgent}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Срочный заказ
+                    </span>
+                    <p className="text-xs text-gray-500">
+                      Отметьте, если заказ требует быстрого выполнения
+                    </p>
+                  </div>
                 </label>
-                <select
-                  id="priority"
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {priorities.map((priority) => (
-                    <option key={priority.value} value={priority.value}>
-                      {priority.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -296,21 +309,52 @@ export function OrderEditForm({ order, onSave, onCancel, isSubmitting = false }:
               </div>
 
               <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Теги
                 </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="тег1, тег2, тег3"
-                />
+                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  <div className="flex flex-wrap gap-2">
+                    {getAvailableTags().map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagToggle(tag)}
+                        className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                          formData.tags.includes(tag)
+                            ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Разделяйте теги запятыми
+                  Выберите подходящие теги (необязательно)
                 </p>
+                {formData.tags.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600 mb-1">Выбранные теги:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleTagToggle(tag)}
+                            className="ml-1 text-indigo-600 hover:text-indigo-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

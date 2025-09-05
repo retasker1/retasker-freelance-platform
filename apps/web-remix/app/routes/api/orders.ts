@@ -99,6 +99,21 @@ export async function loader({ request }: Route.LoaderArgs) {
       prisma.order.count({ where })
     ]);
 
+    // Отладочная информация для тегов
+    console.log("Orders loaded:", orders.map(order => ({
+      id: order.id,
+      title: order.title,
+      category: order.category,
+      tags: order.tags,
+      tagsParsed: order.tags ? (() => {
+        try {
+          return JSON.parse(order.tags);
+        } catch {
+          return null;
+        }
+      })() : null
+    })));
+
     // Вычисляем пагинацию
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
@@ -157,6 +172,14 @@ export async function action({ request }: Route.ActionArgs) {
       // Генерируем короткий код для заказа
       const shortCode = await generateOrderShortCode();
 
+      // Отладочная информация для тегов
+      console.log("Creating order with tags:", {
+        tags,
+        isArray: Array.isArray(tags),
+        length: Array.isArray(tags) ? tags.length : 0,
+        stringified: Array.isArray(tags) && tags.length > 0 ? JSON.stringify(tags) : null
+      });
+
       // Создаем заказ в базе данных
       const newOrder = await prisma.order.create({
         data: {
@@ -166,9 +189,9 @@ export async function action({ request }: Route.ActionArgs) {
           budgetCents: parseInt(budgetCents),
           category: category || "other",
           deadline: deadline ? new Date(deadline) : null,
-          priority: priority || "MEDIUM",
+          priority: priority || "URGENT",
           workType: workType || "FIXED",
-          tags: tags && tags.length > 0 ? JSON.stringify(tags) : null,
+          tags: Array.isArray(tags) && tags.length > 0 ? JSON.stringify(tags) : null,
           customerId,
           status: "OPEN"
         },
@@ -235,7 +258,7 @@ export async function action({ request }: Route.ActionArgs) {
           category,
           priority: priority || 'MEDIUM',
           workType,
-          tags: tags ? JSON.stringify(tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)) : null,
+          tags: Array.isArray(tags) && tags.length > 0 ? JSON.stringify(tags) : (tags ? JSON.stringify(tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)) : null),
           deadline: deadline ? new Date(deadline) : null,
           updatedAt: new Date(),
         },
