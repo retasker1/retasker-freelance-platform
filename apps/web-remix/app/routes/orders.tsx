@@ -174,6 +174,12 @@ export default function OrdersPage() {
   const handleEditSave = async (updatedOrder: any) => {
     setIsSubmitting(true);
     try {
+      // Правильно обрабатываем теги - они уже приходят как массив
+      const processedOrder = {
+        ...updatedOrder,
+        tags: Array.isArray(updatedOrder.tags) ? updatedOrder.tags : []
+      };
+
       const response = await fetch('/api/orders', {
         method: 'PUT',
         headers: {
@@ -181,7 +187,7 @@ export default function OrdersPage() {
         },
         body: JSON.stringify({
           orderId: editingOrder.id,
-          ...updatedOrder,
+          ...processedOrder,
         }),
       });
 
@@ -197,6 +203,43 @@ export default function OrdersPage() {
     } catch (error) {
       console.error('Error updating order:', error);
       alert('Ошибка при обновлении заказа: ' + (error as Error).message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteOrder = async (order: any) => {
+    // Подтверждение удаления
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить заказ "${order.title}"?\n\nЭто действие нельзя отменить.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при удалении заказа');
+      }
+
+      // Перенаправляем на список заказов
+      window.location.href = '/orders';
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Ошибка при удалении заказа: ' + (error as Error).message);
     } finally {
       setIsSubmitting(false);
     }
@@ -388,8 +431,12 @@ export default function OrdersPage() {
                     >
                       Редактировать заказ
                     </button>
-                    <button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium whitespace-nowrap">
-                      Удалить заказ
+                    <button 
+                      onClick={() => handleDeleteOrder(order)}
+                      disabled={isSubmitting}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? 'Удаление...' : 'Удалить заказ'}
                     </button>
                   </div>
                 ) : canRespond ? (
@@ -471,6 +518,56 @@ export default function OrdersPage() {
 
           {/* Фильтры и поиск */}
           <div className="bg-white shadow rounded-lg p-6 mb-6">
+            {/* Переключатель "Мои заказы" */}
+            <div className="mb-4 pb-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <label className="text-sm font-medium text-gray-700 mr-3">
+                    Показать:
+                  </label>
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('viewMode', 'all');
+                        url.searchParams.delete('userId');
+                        window.location.href = url.toString();
+                      }}
+                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                        data.filters.viewMode === 'all' 
+                          ? 'bg-white text-gray-900 shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Все заказы
+                    </button>
+                    <button
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('viewMode', 'my');
+                        if (user?.id) {
+                          url.searchParams.set('userId', user.id);
+                        }
+                        window.location.href = url.toString();
+                      }}
+                      className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                        data.filters.viewMode === 'my' 
+                          ? 'bg-white text-gray-900 shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Мои заказы
+                    </button>
+                  </div>
+                </div>
+                {data.filters.viewMode === 'my' && (
+                  <div className="text-sm text-gray-500">
+                    Показаны только ваши заказы
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">

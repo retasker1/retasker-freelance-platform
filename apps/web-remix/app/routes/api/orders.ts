@@ -139,6 +139,18 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   const method = request.method;
   
+  // Обработка OPTIONS запроса для CORS
+  if (method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
+  }
+  
   if (method === "POST") {
     // Создание нового заказа
     try {
@@ -248,6 +260,14 @@ export async function action({ request }: Route.ActionArgs) {
         }, { status: 404 });
       }
 
+      // Отладочная информация для тегов
+      console.log("Updating order with tags:", {
+        tags,
+        isArray: Array.isArray(tags),
+        type: typeof tags,
+        length: Array.isArray(tags) ? tags.length : (tags ? tags.length : 0)
+      });
+
       // Обновляем заказ
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },
@@ -258,7 +278,7 @@ export async function action({ request }: Route.ActionArgs) {
           category,
           priority: priority || 'MEDIUM',
           workType,
-          tags: Array.isArray(tags) && tags.length > 0 ? JSON.stringify(tags) : (tags ? JSON.stringify(tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)) : null),
+          tags: Array.isArray(tags) && tags.length > 0 ? JSON.stringify(tags) : (tags && typeof tags === 'string' ? JSON.stringify(tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)) : null),
           deadline: deadline ? new Date(deadline) : null,
           updatedAt: new Date(),
         },
@@ -300,6 +320,75 @@ export async function action({ request }: Route.ActionArgs) {
         headers: {
           "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
           "Access-Control-Allow-Methods": "PUT, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
+  }
+
+  // Обработка DELETE запроса для удаления заказа
+  if (request.method === "DELETE") {
+    try {
+      const { orderId } = await request.json();
+
+      if (!orderId) {
+        return Response.json({ 
+          error: "ID заказа обязателен" 
+        }, { 
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+            "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+      }
+
+      // Проверяем, что заказ существует
+      const existingOrder = await prisma.order.findUnique({
+        where: { id: orderId }
+      });
+
+      if (!existingOrder) {
+        return Response.json({ 
+          error: "Заказ не найден" 
+        }, { 
+          status: 404,
+          headers: {
+            "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+            "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+      }
+
+      // Удаляем заказ (каскадное удаление удалит связанные deals)
+      await prisma.order.delete({
+        where: { id: orderId }
+      });
+
+      console.log(`Order ${orderId} deleted successfully`);
+
+      return Response.json({ 
+        success: true,
+        message: "Заказ успешно удален"
+      }, {
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "DELETE, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      return Response.json({ 
+        error: "Внутренняя ошибка сервера" 
+      }, { 
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
         },
       });
