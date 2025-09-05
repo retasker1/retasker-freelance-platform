@@ -1,5 +1,6 @@
 import type { Route } from "./+types/orders";
 import { prisma } from "../../lib/prisma";
+import { generateOrderShortCode } from "~/utils/shortCode";
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
@@ -62,7 +63,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     const [orders, totalCount] = await Promise.all([
       prisma.order.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          shortCode: true,
+          title: true,
+          description: true,
+          budgetCents: true,
+          status: true,
+          category: true,
+          priority: true,
+          workType: true,
+          tags: true,
+          deadline: true,
+          createdAt: true,
+          updatedAt: true,
+          customerId: true,
           customer: {
             select: {
               id: true,
@@ -139,9 +154,13 @@ export async function action({ request }: Route.ActionArgs) {
       return new Response("Customer not found", { status: 404 });
     }
 
+    // Генерируем короткий код для заказа
+    const shortCode = await generateOrderShortCode();
+
     // Создаем заказ в базе данных
     const newOrder = await prisma.order.create({
       data: {
+        shortCode,
         title,
         description,
         budgetCents: parseInt(budgetCents),

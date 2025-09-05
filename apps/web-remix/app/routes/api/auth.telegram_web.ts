@@ -1,8 +1,27 @@
-import { prisma } from "../../lib/prisma";
+﻿import { prisma } from "../../lib/prisma";
 
 export async function action({ request }: any) {
+  // Обработка CORS preflight запросов
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
+  }
+
   if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { 
+      status: 405,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
   }
 
   try {
@@ -84,12 +103,25 @@ export async function action({ request }: any) {
         isActive: user.isActive,
         createdAt: user.createdAt,
       }
+    }, {
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
     });
   } catch (error) {
     console.error("Auth API error:", error);
     return Response.json({
       success: false,
       message: "Internal server error"
+    }, {
+      status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
     });
   }
 }

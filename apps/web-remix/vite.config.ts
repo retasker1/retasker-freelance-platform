@@ -1,4 +1,4 @@
-import { reactRouter } from "@react-router/dev/vite";
+﻿import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -12,8 +12,9 @@ export default defineConfig({
       '127.0.0.1',
       'famous-taxes-send.loca.lt',
       '.loca.lt', // Разрешить все поддомены loca.lt
-      '3dfu5ii9t8is.share.zrok.io', // zrok домен
+      '4klnm84lswj4.share.zrok.io', // zrok домен
       '.share.zrok.io' // Разрешить все поддомены zrok
     ]
   }
 });
+

@@ -38,6 +38,7 @@ model User {
 // Модель заказа
 model Order {
   id          String   @id @default(cuid())
+  shortCode   String   @unique @default("ORD-0000")
   title       String
   description String
   budgetCents Int

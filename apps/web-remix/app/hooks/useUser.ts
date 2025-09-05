@@ -104,10 +104,16 @@ export function useUser() {
 
   const checkTelegramAuth = async () => {
     try {
+      console.log("Checking Telegram Web App...");
+      console.log("window.Telegram:", window.Telegram);
+      console.log("window.Telegram?.WebApp:", window.Telegram?.WebApp);
+      console.log("initDataUnsafe:", window.Telegram?.WebApp?.initDataUnsafe);
+      
       // Проверяем, запущены ли мы в Telegram Web App
       if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
         console.log("Telegram Web App detected, attempting auth...");
         const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+        console.log("Telegram user data:", telegramUser);
         const result = await loginWithTelegramData(telegramUser);
         if (result.success) {
           console.log("Telegram auth successful");
@@ -116,7 +122,9 @@ export function useUser() {
           console.log("Telegram auth failed:", result.error);
         }
       } else {
-        console.log("No Telegram Web App detected");
+        console.log("No Telegram Web App detected - running in browser");
+        // Если не в Telegram Web App, попробуем авторизацию через кнопку
+        return false;
       }
     } catch (error) {
       console.error("Telegram auth check error:", error);

@@ -1,4 +1,4 @@
-import { Form, Link } from "react-router";
+﻿import { Form, Link } from "react-router";
 import React, { useState, useEffect } from "react";
 import type { Route } from "./+types/login";
 import { useUser } from "../hooks/useUser";
@@ -59,7 +59,7 @@ export default function LoginPage() {
   const handleTelegramOAuth = () => {
     // Telegram OAuth 2.0 - как у Fragment
     const botId = "8429934306"; // ID бота (только цифры)
-    const baseUrl = 'https://3dfu5ii9t8is.share.zrok.io';
+    const baseUrl = 'https://4klnm84lswj4.share.zrok.io';
     
     const origin = encodeURIComponent(baseUrl);
     const redirectUri = encodeURIComponent(`${baseUrl}/auth/callback`);
