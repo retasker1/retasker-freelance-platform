@@ -3,6 +3,7 @@ import type { Route } from "./+types/orders";
 import { useUser } from "../hooks/useUser";
 import { useState } from "react";
 import { DealResponseForm } from "../components/DealResponseForm";
+import { OrderEditForm } from "../components/OrderEditForm";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -152,6 +153,9 @@ export default function OrdersPage() {
   const { user, loading } = useUser();
   const [showDealForm, setShowDealForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleDealResponse = (order: any) => {
     setSelectedOrder(order);
@@ -168,6 +172,47 @@ export default function OrdersPage() {
   const handleDealCancel = () => {
     setShowDealForm(false);
     setSelectedOrder(null);
+  };
+
+  const handleEditOrder = (order: any) => {
+    setEditingOrder(order);
+    setShowEditForm(true);
+  };
+
+  const handleEditCancel = () => {
+    setShowEditForm(false);
+    setEditingOrder(null);
+  };
+
+  const handleEditSave = async (updatedOrder: any) => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: editingOrder.id,
+          ...updatedOrder,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Ошибка при обновлении заказа');
+      }
+
+      // Закрываем форму и перезагружаем страницу
+      setShowEditForm(false);
+      setEditingOrder(null);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Ошибка при обновлении заказа: ' + (error as Error).message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Показываем загрузку пока проверяем авторизацию
@@ -367,7 +412,10 @@ export default function OrdersPage() {
               <div className="flex-1 min-w-0">
                 {isOwner ? (
                   <div className="flex space-x-3 flex-wrap">
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium whitespace-nowrap">
+                    <button 
+                      onClick={() => handleEditOrder(order)}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium whitespace-nowrap"
+                    >
                       Редактировать заказ
                     </button>
                     <button className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium whitespace-nowrap">
@@ -407,6 +455,16 @@ export default function OrdersPage() {
           orderBudget={selectedOrder.budgetCents ? selectedOrder.budgetCents / 100 : 0}
           onSuccess={handleDealSuccess}
           onCancel={handleDealCancel}
+        />
+      )}
+
+      {/* Форма редактирования заказа */}
+      {showEditForm && editingOrder && (
+        <OrderEditForm
+          order={editingOrder}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
+          isSubmitting={isSubmitting}
         />
       )}
     </>
@@ -674,6 +732,16 @@ export default function OrdersPage() {
           orderBudget={selectedOrder.budgetCents ? selectedOrder.budgetCents / 100 : 0}
           onSuccess={handleDealSuccess}
           onCancel={handleDealCancel}
+        />
+      )}
+
+      {/* Форма редактирования заказа */}
+      {showEditForm && editingOrder && (
+        <OrderEditForm
+          order={editingOrder}
+          onSave={handleEditSave}
+          onCancel={handleEditCancel}
+          isSubmitting={isSubmitting}
         />
       )}
     </>

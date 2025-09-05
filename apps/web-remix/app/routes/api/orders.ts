@@ -122,71 +122,166 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
-
-  try {
-    const body = await request.json();
-    const { 
-      title, 
-      description, 
-      budgetCents, 
-      category, 
-      deadline, 
-      customerId,
-      tags,
-      priority,
-      workType
-    } = body;
-
-    // Валидация данных
-    if (!title || !description || !budgetCents || !customerId) {
-      return new Response("Missing required fields", { status: 400 });
-    }
-
-    // Проверяем, существует ли пользователь в базе данных
-    const customer = await prisma.user.findUnique({
-      where: { id: customerId }
-    });
-
-    if (!customer) {
-      return new Response("Customer not found", { status: 404 });
-    }
-
-    // Генерируем короткий код для заказа
-    const shortCode = await generateOrderShortCode();
-
-    // Создаем заказ в базе данных
-    const newOrder = await prisma.order.create({
-      data: {
-        shortCode,
-        title,
-        description,
-        budgetCents: parseInt(budgetCents),
-        category: category || "other",
-        deadline: deadline ? new Date(deadline) : null,
-        priority: priority || "MEDIUM",
-        workType: workType || "FIXED",
-        tags: tags && tags.length > 0 ? JSON.stringify(tags) : null,
+  const method = request.method;
+  
+  if (method === "POST") {
+    // Создание нового заказа
+    try {
+      const body = await request.json();
+      const { 
+        title, 
+        description, 
+        budgetCents, 
+        category, 
+        deadline, 
         customerId,
-        status: "OPEN"
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
+        tags,
+        priority,
+        workType
+      } = body;
+
+      // Валидация данных
+      if (!title || !description || !budgetCents || !customerId) {
+        return new Response("Missing required fields", { status: 400 });
+      }
+
+      // Проверяем, существует ли пользователь в базе данных
+      const customer = await prisma.user.findUnique({
+        where: { id: customerId }
+      });
+
+      if (!customer) {
+        return new Response("Customer not found", { status: 404 });
+      }
+
+      // Генерируем короткий код для заказа
+      const shortCode = await generateOrderShortCode();
+
+      // Создаем заказ в базе данных
+      const newOrder = await prisma.order.create({
+        data: {
+          shortCode,
+          title,
+          description,
+          budgetCents: parseInt(budgetCents),
+          category: category || "other",
+          deadline: deadline ? new Date(deadline) : null,
+          priority: priority || "MEDIUM",
+          workType: workType || "FIXED",
+          tags: tags && tags.length > 0 ? JSON.stringify(tags) : null,
+          customerId,
+          status: "OPEN"
+        },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+            }
           }
         }
-      }
-    });
+      });
 
-    return Response.json({ order: newOrder }, { status: 201 });
-  } catch (error) {
-    console.error("Create order error:", error);
-    return new Response("Internal server error", { status: 500 });
+      return Response.json({ order: newOrder }, { status: 201 });
+    } catch (error) {
+      console.error("Create order error:", error);
+      return new Response("Internal server error", { status: 500 });
+    }
+  } 
+  
+  if (method === "PUT") {
+    // Обновление существующего заказа
+    try {
+      const body = await request.json();
+      const { 
+        orderId, 
+        title, 
+        description, 
+        budgetCents, 
+        category, 
+        priority, 
+        workType, 
+        tags, 
+        deadline 
+      } = body;
+
+      // Валидация обязательных полей
+      if (!orderId || !title || !description || !budgetCents || !category || !workType) {
+        return Response.json({ 
+          error: "Отсутствуют обязательные поля" 
+        }, { status: 400 });
+      }
+
+      // Проверяем, что заказ существует
+      const existingOrder = await prisma.order.findUnique({
+        where: { id: orderId }
+      });
+
+      if (!existingOrder) {
+        return Response.json({ 
+          error: "Заказ не найден" 
+        }, { status: 404 });
+      }
+
+      // Обновляем заказ
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          title: title.trim(),
+          description: description.trim(),
+          budgetCents: Math.round(budgetCents),
+          category,
+          priority: priority || 'MEDIUM',
+          workType,
+          tags: tags ? JSON.stringify(tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0)) : null,
+          deadline: deadline ? new Date(deadline) : null,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          shortCode: true,
+          title: true,
+          description: true,
+          budgetCents: true,
+          status: true,
+          category: true,
+          priority: true,
+          workType: true,
+          tags: true,
+          deadline: true,
+          createdAt: true,
+          updatedAt: true,
+          customerId: true,
+        }
+      });
+
+      return Response.json({ 
+        success: true, 
+        order: updatedOrder 
+      }, {
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "PUT, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+
+    } catch (error) {
+      console.error("Error updating order:", error);
+      return Response.json({ 
+        error: "Внутренняя ошибка сервера" 
+      }, { 
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "PUT, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        },
+      });
+    }
   }
+
+  return new Response("Method not allowed", { status: 405 });
 }
