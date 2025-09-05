@@ -38,12 +38,16 @@ model User {
 // Модель заказа
 model Order {
   id          String   @id @default(cuid())
+  shortCode   String   @unique @default("ORD-0000")
   title       String
   description String
   budgetCents Int
   status      OrderStatus @default(OPEN)
   category    String   @default("other")
   deadline    DateTime?
+  priority    Priority @default(MEDIUM)
+  workType    WorkType @default(FIXED)
+  tags        String?  // JSON массив тегов
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -110,4 +114,17 @@ enum DealStatus {
   DELIVERED
   COMPLETED
   CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum WorkType {
+  FIXED
+  HOURLY
+  MILESTONE
 }

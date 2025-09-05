@@ -1,110 +1,281 @@
-import type { Route } from "./+types/deals";
+﻿import { prisma } from "../../lib/prisma";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: any) {
+  const url = new URL(request.url);
+  const orderId = url.searchParams.get("orderId");
+  const userId = url.searchParams.get("userId");
+  const status = url.searchParams.get("status") || "";
+
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    const status = url.searchParams.get("status");
+    let whereClause: any = {};
 
-    if (!userId) {
-      return new Response("User ID is required", { status: 400 });
+    // Фильтр по заказу
+    if (orderId) {
+      whereClause.orderId = orderId;
     }
 
-    // TODO: Подключить Prisma для получения сделок пользователя
-    // Пока возвращаем тестовые данные
-    const deals = [
-      {
-        id: "1",
-        orderId: "1",
-        customerId: userId,
-        freelancerId: "freelancer_123",
-        status: "ACTIVE",
-        amountCents: 50000,
-        createdAt: "2024-01-01T10:00:00Z",
-        order: {
-          title: "Разработка лендинга",
-          description: "Нужен современный лендинг для IT-компании",
-        },
-      },
-      {
-        id: "2",
-        orderId: "2", 
-        customerId: "customer_456",
-        freelancerId: userId,
-        status: "COMPLETED",
-        amountCents: 15000,
-        createdAt: "2024-01-02T14:30:00Z",
-        order: {
-          title: "Дизайн логотипа",
-          description: "Создание логотипа для стартапа",
-        },
-      },
-    ];
+    // Фильтр по пользователю (как заказчик или исполнитель)
+    if (userId) {
+      whereClause.OR = [
+        { customerId: userId },
+        { freelancerId: userId }
+      ];
+    }
 
-    // Фильтрация по статусу
-    let filteredDeals = deals;
+    // Фильтр по статусу
     if (status) {
-      filteredDeals = deals.filter(deal => deal.status === status);
+      whereClause.status = status;
     }
 
-    return Response.json({ deals: filteredDeals });
+    const deals = await prisma.deal.findMany({
+      where: whereClause,
+      include: {
+        order: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            budgetCents: true,
+            status: true,
+            category: true,
+            priority: true,
+            workType: true,
+            tags: true,
+            deadline: true,
+            createdAt: true,
+          }
+        },
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            photoUrl: true,
+          }
+        },
+        freelancer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            photoUrl: true,
+          }
+        },
+        messages: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          take: 1
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return Response.json({ deals });
   } catch (error) {
-    console.error("Deals API error:", error);
-    return new Response("Internal server error", { status: 500 });
+    console.error("Failed to load deals:", error);
+    return Response.json({ error: "Failed to load deals" }, { status: 500 });
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: any) {
   if (request.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", { 
+      status: 405,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
+  }
+
+  // Обработка CORS preflight запросов
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
   }
 
   try {
     const body = await request.json();
-    const { orderId, freelancerId, action: dealAction } = body;
+    const { orderId, freelancerId, amountCents, message } = body;
 
-    // Валидация данных
-    if (!orderId || !freelancerId || !dealAction) {
-      return new Response("Missing required fields", { status: 400 });
+    // Валидация
+    if (!orderId || !freelancerId || !amountCents) {
+      return Response.json({
+        success: false,
+        error: "Missing required fields"
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        }
+      });
     }
 
-    // TODO: Подключить Prisma для управления сделками
-    // TODO: Добавить аутентификацию пользователя
+    // Проверяем, что заказ существует и открыт
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { customer: true }
+    });
 
-    let updatedDeal;
-    switch (dealAction) {
-      case "accept":
-        updatedDeal = {
-          id: Date.now().toString(),
-          orderId,
-          customerId: "current_user", // TODO: Получить из аутентификации
-          freelancerId,
-          status: "ACTIVE",
-          amountCents: 0, // TODO: Получить из заказа
-          createdAt: new Date().toISOString(),
-        };
-        break;
-      case "deliver":
-        updatedDeal = {
-          id: "existing_deal_id",
-          status: "DELIVERED",
-          deliveredAt: new Date().toISOString(),
-        };
-        break;
-      case "confirm":
-        updatedDeal = {
-          id: "existing_deal_id", 
-          status: "COMPLETED",
-          completedAt: new Date().toISOString(),
-        };
-        break;
-      default:
-        return new Response("Invalid action", { status: 400 });
+    if (!order) {
+      return Response.json({
+        success: false,
+        error: "Order not found"
+      }, {
+        status: 404,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        }
+      });
     }
 
-    return Response.json({ deal: updatedDeal });
+    if (order.status !== 'OPEN') {
+      return Response.json({
+        success: false,
+        error: "Order is not open for responses"
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        }
+      });
+    }
+
+    // Проверяем, что пользователь не пытается откликнуться на свой заказ
+    if (order.customerId === freelancerId) {
+      return Response.json({
+        success: false,
+        error: "You cannot respond to your own order"
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        }
+      });
+    }
+
+    // Проверяем, что пользователь еще не откликался на этот заказ
+    const existingDeal = await prisma.deal.findFirst({
+      where: {
+        orderId: orderId,
+        freelancerId: freelancerId
+      }
+    });
+
+    if (existingDeal) {
+      return Response.json({
+        success: false,
+        error: "You have already responded to this order"
+      }, {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+        }
+      });
+    }
+
+    // Создаем отклик
+    const deal = await prisma.deal.create({
+      data: {
+        orderId: orderId,
+        customerId: order.customerId,
+        freelancerId: freelancerId,
+        amountCents: amountCents,
+        status: 'PENDING'
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            budgetCents: true,
+            status: true,
+            category: true,
+            priority: true,
+            workType: true,
+            tags: true,
+            deadline: true,
+            createdAt: true,
+          }
+        },
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            photoUrl: true,
+          }
+        },
+        freelancer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            photoUrl: true,
+          }
+        }
+      }
+    });
+
+    // Если есть сообщение, создаем его
+    if (message && message.trim()) {
+      await prisma.message.create({
+        data: {
+          content: message.trim(),
+          dealId: deal.id,
+          userId: freelancerId
+        }
+      });
+    }
+
+    return Response.json({
+      success: true,
+      deal: deal
+    }, {
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
+
   } catch (error) {
-    console.error("Deal action error:", error);
-    return new Response("Internal server error", { status: 500 });
+    console.error("Failed to create deal:", error);
+    return Response.json({
+      success: false,
+      error: "Internal server error"
+    }, {
+      status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "https://4klnm84lswj4.share.zrok.io",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
   }
 }
