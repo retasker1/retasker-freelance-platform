@@ -161,7 +161,7 @@ export default function NewOrderPage() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-  const { user } = useUser();
+  const { user, loading } = useUser();
   const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
     title: actionData?.values?.title || "",
@@ -221,6 +221,20 @@ export default function NewOrderPage() {
     }
   }, [actionData]);
 
+  // Показываем загрузку пока проверяем авторизацию
+  if (loading) {
+    return (
+      <div className="px-4 py-6 sm:px-0">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white shadow rounded-lg p-6 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Проверка авторизации...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="px-4 py-6 sm:px-0">
@@ -233,12 +247,18 @@ export default function NewOrderPage() {
             <p className="text-gray-600 mb-6">
               Для создания заказов необходимо войти через Telegram
             </p>
-            <a
-              href="/login"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Войти через Telegram
-            </a>
+            <div className="space-y-3">
+              <a
+                href="/login"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Войти через Telegram
+              </a>
+              <div className="text-xs text-gray-500">
+                <p>Статус загрузки: {loading ? 'Загрузка...' : 'Завершено'}</p>
+                <p>Пользователь: {user ? 'Авторизован' : 'Не авторизован'}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -320,15 +340,25 @@ export default function NewOrderPage() {
                 Опишите вашу задачу и получите отклики от исполнителей
               </p>
             </div>
-            <button
-              onClick={() => {
-                localStorage.clear();
-                window.location.reload();
-              }}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Очистить данные
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  localStorage.clear();
+                  window.location.reload();
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700 underline"
+              >
+                Очистить данные
+              </button>
+              <button
+                onClick={() => {
+                  window.location.href = '/login';
+                }}
+                className="text-sm text-indigo-600 hover:text-indigo-700 underline"
+              >
+                Войти заново
+              </button>
+            </div>
           </div>
         </div>
 
@@ -533,7 +563,7 @@ export default function NewOrderPage() {
             <p className="mt-1 text-xs text-gray-500">
               Выберите подходящие теги (необязательно)
             </p>
-            {formData.tags.length > 0 && (
+            {formData.tags && formData.tags.length > 0 && (
               <div className="mt-2">
                 <p className="text-xs text-gray-600 mb-1">Выбранные теги:</p>
                 <div className="flex flex-wrap gap-1">
