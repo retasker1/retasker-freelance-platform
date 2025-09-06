@@ -26,11 +26,20 @@ model User {
   authToken     String?
   tokenExpiresAt DateTime?
 
+  // Виртуальный баланс (в центах)
+  balanceCents Int @default(0)
+
   // Связи
   orders     Order[]     @relation("OrderCustomer")
   deals      Deal[]      @relation("DealCustomer")
   freelancerDeals Deal[] @relation("DealFreelancer")
   messages   Message[]
+  responses  Response[]
+  balanceTransactions BalanceTransaction[]
+  ratingsGiven Rating[] @relation("RatingGiver")
+  ratingsReceived Rating[] @relation("RatingReceiver")
+  favorites  Favorite[]
+  complaints Complaint[]
 
   @@map("users")
 }
@@ -56,6 +65,8 @@ model Order {
   customer   User   @relation("OrderCustomer", fields: [customerId], references: [id])
   deals      Deal[]
   messages   Message[]
+  responses  Response[]
+  favorites  Favorite[]
 
   @@map("orders")
 }
@@ -127,4 +138,117 @@ enum WorkType {
   FIXED
   HOURLY
   MILESTONE
+}
+
+// Модель отклика на заказ
+model Response {
+  id        String   @id @default(cuid())
+  message   String
+  priceCents Int?    // Предлагаемая цена (если отличается от заказа)
+  status    ResponseStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связи
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
+  freelancerId String
+  freelancer User  @relation(fields: [freelancerId], references: [id])
+
+  @@map("responses")
+}
+
+// Модель транзакции баланса
+model BalanceTransaction {
+  id          String   @id @default(cuid())
+  amountCents Int      // Положительное - пополнение, отрицательное - списание
+  type        TransactionType
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Связи
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  dealId String? // Связанная сделка (если транзакция связана со сделкой)
+
+  @@map("balance_transactions")
+}
+
+// Модель рейтинга
+model Rating {
+  id        String   @id @default(cuid())
+  score     Int      // 1-5 звезд
+  comment   String?
+  createdAt DateTime @default(now())
+
+  // Связи
+  giverId   String
+  giver     User    @relation("RatingGiver", fields: [giverId], references: [id])
+  receiverId String
+  receiver  User    @relation("RatingReceiver", fields: [receiverId], references: [id])
+  dealId    String? // Связанная сделка
+
+  @@map("ratings")
+}
+
+// Модель избранного
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Связи
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  @@unique([userId, orderId])
+  @@map("favorites")
+}
+
+// Модель жалобы
+model Complaint {
+  id          String   @id @default(cuid())
+  reason      ComplaintReason
+  description String
+  status      ComplaintStatus @default(PENDING)
+  adminNotes  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Связи
+  complainantId String
+  complainant   User   @relation(fields: [complainantId], references: [id])
+  dealId        String? // Связанная сделка (если жалоба на сделку)
+
+  @@map("complaints")
+}
+
+enum ResponseStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT      // Пополнение
+  WITHDRAWAL   // Списание
+  DEAL_PAYMENT // Платеж по сделке
+  REFUND       // Возврат
+  ADMIN_ADJUSTMENT // Админская корректировка
+}
+
+enum ComplaintReason {
+  FRAUD        // Мошенничество
+  POOR_QUALITY // Плохое качество
+  NON_DELIVERY // Недоставка
+  INAPPROPRIATE_BEHAVIOR // Неподобающее поведение
+  OTHER        // Другое
+}
+
+enum ComplaintStatus {
+  PENDING    // Ожидает рассмотрения
+  IN_REVIEW  // На рассмотрении
+  RESOLVED   // Решена
+  REJECTED   // Отклонена
 }
