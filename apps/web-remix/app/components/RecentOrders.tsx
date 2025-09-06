@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router";
+import { useUser } from "../hooks/useUser";
 
 interface Order {
   id: string;
@@ -23,6 +24,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
   orders, 
   showAllLink = true 
 }) => {
+  const { user } = useUser();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ru-RU', {
@@ -95,7 +97,7 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
         </div>
       ) : (
         <div className="space-y-6">
-          {orders.slice(0, 5).map((order) => (
+          {orders.slice(0, 3).map((order) => (
             <div
               key={order.id}
               className="bg-white shadow rounded-lg p-4 sm:p-6"
@@ -167,6 +169,17 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
                 >
                   Подробнее
                 </Link>
+                {user && (
+                  <button 
+                    className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium transition-colors"
+                    onClick={() => {
+                      // TODO: Реализовать отклик на заказ
+                      alert('Функция отклика будет реализована в следующих версиях');
+                    }}
+                  >
+                    Откликнуться
+                  </button>
+                )}
               </div>
             </div>
           ))}
