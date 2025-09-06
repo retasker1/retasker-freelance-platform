@@ -148,13 +148,26 @@ export async function loader({ request }: Route.LoaderArgs) {
       })() : null
     })));
 
+    // Преобразуем теги из JSON строки в массив для каждого заказа
+    const ordersWithParsedTags = orders.map(order => ({
+      ...order,
+      author: order.customer, // Переименовываем customer в author для консистентности
+      tags: order.tags ? (() => {
+        try {
+          return JSON.parse(order.tags);
+        } catch {
+          return [];
+        }
+      })() : []
+    }));
+
     // Вычисляем пагинацию
     const totalPages = Math.ceil(totalCount / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
     return Response.json({ 
-      orders, 
+      orders: ordersWithParsedTags, 
       pagination: {
         page,
         limit,
@@ -207,11 +220,15 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       // Проверяем, существует ли пользователь в базе данных
+      console.log("Looking for customer with ID:", customerId);
       const customer = await prisma.user.findUnique({
         where: { id: customerId }
       });
 
+      console.log("Customer found:", customer);
+
       if (!customer) {
+        console.error("Customer not found for ID:", customerId);
         return new Response("Customer not found", { status: 404 });
       }
 
@@ -253,9 +270,17 @@ export async function action({ request }: Route.ActionArgs) {
         }
       });
 
+      console.log("Order created successfully:", newOrder.id);
       return Response.json({ order: newOrder }, { status: 201 });
     } catch (error) {
       console.error("Create order error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        customerId,
+        title,
+        category
+      });
       return new Response("Internal server error", { status: 500 });
     }
   } 

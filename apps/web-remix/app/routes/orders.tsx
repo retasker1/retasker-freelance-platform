@@ -431,26 +431,26 @@ export default function OrdersPage() {
             </div>
 
             {/* Теги */}
-            {order.tags && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Теги</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    try {
-                      const tags = JSON.parse(order.tags);
-                      return tags.map((tag: string, index: number) => (
-                        <span key={index} className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800 max-w-full truncate">
+            {order.tags && (() => {
+              try {
+                const tags = JSON.parse(order.tags);
+                return Array.isArray(tags) && tags.length > 0 ? (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">Теги</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag: string, index: number) => (
+                        <span key={index} className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800 max-w-full truncate">
                           {tag}
                         </span>
-                      ));
-                    } catch (error) {
-                      console.error("Error parsing tags:", error);
-                      return null;
-                    }
-                  })()}
-                </div>
-              </div>
-            )}
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              } catch (error) {
+                console.error("Error parsing tags:", error);
+                return null;
+              }
+            })()}
 
             {/* Информация о заказчике */}
             <div className="border-t pt-6">
@@ -907,24 +907,14 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Теги */}
-                  {order.tags && (
+                  {order.tags && Array.isArray(order.tags) && order.tags.length > 0 && (
                     <div className="mb-4">
                       <div className="flex flex-wrap gap-2">
-                        {(() => {
-                          console.log(`Rendering tags for order ${order.id} (${order.title}):`, order.tags);
-                          try {
-                            const tags = JSON.parse(order.tags);
-                            console.log(`Parsed tags for order ${order.id}:`, tags);
-                            return tags.map((tag: string, index: number) => (
-                              <span key={index} className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800 max-w-full truncate">
-                                {tag}
-                              </span>
-                            ));
-                          } catch (error) {
-                            console.error("Error parsing tags:", error);
-                            return null;
-                          }
-                        })()}
+                        {order.tags.map((tag: string, index: number) => (
+                          <span key={index} className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 max-w-full truncate">
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
